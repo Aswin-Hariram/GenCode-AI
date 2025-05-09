@@ -1,103 +1,92 @@
-import Image from "next/image";
+"use client";
+import { useState, useEffect } from 'react';
+import Split from 'react-split';
 
-export default function Home() {
+// Import components
+import Header from './components/Header';
+import TabNavigation from './components/TabNavigation';
+import ProblemDescription from './components/ProblemDescription';
+import CodeEditor from './components/CodeEditor';
+
+// Import constants
+import { PROBLEM_DESCRIPTION, INITIAL_CODE } from './constants/problemData';
+
+export default function ProblemViewer() {
+  const [code, setCode] = useState(INITIAL_CODE);
+  const [activeTab, setActiveTab] = useState('description');
+  const [theme, setTheme] = useState('dark');
+  const [isConsoleOpen, setIsConsoleOpen] = useState(false);
+  const [problemData, setProblemData] = useState({
+    description: PROBLEM_DESCRIPTION,
+    initialCode: INITIAL_CODE
+  });
+
+  useEffect(() => {
+    fetch('http://127.0.0.1:5000/get_dsa_question')
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        setProblemData({
+          description: data.markdown,
+          initialCode: data.initialCode || INITIAL_CODE
+        });
+        setCode(data.initialCode || INITIAL_CODE);
+      })
+      .catch(error => console.error('Error fetching data:', error));
+  }, []);
+
+  // Toggle console
+  const toggleConsole = () => setIsConsoleOpen(!isConsoleOpen);
+
+  // Render active tab content
+  // Update renderTabContent to use problemData.description
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'description':
+        return <ProblemDescription problemDescription={problemData.description} />;
+      case 'solution':
+        return (
+          <ProblemDescription problemDescription={PROBLEM_DESCRIPTION} />
+        );
+      case 'submissions':
+        return (
+          <ProblemDescription problemDescription={PROBLEM_DESCRIPTION} />
+        );
+      default:
+        return <ProblemDescription problemDescription={PROBLEM_DESCRIPTION} />;
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <div className="max-h-screen overflow-hidden flex flex-col bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+      {/* Top Navigation Bar */}
+      <Header theme={theme} setTheme={setTheme} />
+      
+      {/* Tab Navigation */}
+      <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      
+      {/* Main Content */}
+      <Split 
+        className="flex flex-1"
+        sizes={[40, 60]}
+        minSize={200}
+        gutterSize={8}
+        gutterStyle={() => ({
+          backgroundColor: 'rgba(99, 102, 241, 0.2)',
+          cursor: 'col-resize'
+        })}
+      >
+        {/* Left Panel - Dynamic Tab Content */}
+        {renderTabContent()}
+        
+        {/* Right Panel - Code Editor */}
+        <CodeEditor 
+          code={code} 
+          setCode={setCode} 
+          isConsoleOpen={isConsoleOpen} 
+          toggleConsole={toggleConsole} 
         />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </Split>
     </div>
   );
 }
