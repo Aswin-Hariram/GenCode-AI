@@ -1,104 +1,156 @@
 "use client";
-import ReactMarkdown from 'react-markdown';
+import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
-import rehypeSanitize from 'rehype-sanitize';
-import { FiClock, FiAward } from 'react-icons/fi';
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
+import { 
+  Clock, 
+  Award, 
+  Code2, 
+  FileText, 
+  Layers, 
+  Sparkles, 
+  Copy,
+  Check,
+  ChevronRight
+} from "lucide-react";
+import DescriptionTab from './tabs/DescriptionTab';
+import ResultsTab from './tabs/ResultsTab';
+import SolutionTab from './tabs/SolutionTab';
 
-const ProblemDescription = ({ problemData, activeTab }) => {
+const ProblemDescription = ({ problemData, activeTab, response, theme }) => {
+  const [copied, setCopied] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [selectedText, setSelectedText] = useState('');
+
+  useEffect(() => {
+    if (copied) {
+      const timer = setTimeout(() => setCopied(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [copied]);
+
+  useEffect(() => {
+    // Add event listener for text selection
+    const handleSelection = () => {
+      const selection = window.getSelection();
+      if (selection.toString()) {
+        setSelectedText(selection.toString());
+      }
+    };
+
+    document.addEventListener('mouseup', handleSelection);
+    document.addEventListener('keyup', handleSelection);
+
+    return () => {
+      document.removeEventListener('mouseup', handleSelection);
+      document.removeEventListener('keyup', handleSelection);
+    };
+  }, []);
+
+  const copyToClipboard = (text) => {
+    const textToCopy = text || selectedText;
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        setCopied(true);
+        startAnimation();
+      }).catch(err => {
+        console.error('Failed to copy text: ', err);
+      });
+    }
+  };
+
+  const startAnimation = () => {
+    setIsAnimating(true);
+    setTimeout(() => setIsAnimating(false), 500);
+  };
+
+  const renderDifficulty = (difficulty) => {
+    const difficultyMap = {
+      "Easy": "bg-green-100 text-green-800 border-green-200",
+      "Medium": "bg-yellow-100 text-yellow-800 border-yellow-200",
+      "Hard": "bg-red-100 text-red-800 border-red-200"
+    };
+    
+    return (
+      <span className={`text-sm px-3 py-1 rounded-full font-medium ${difficultyMap[difficulty] || "bg-blue-100 text-blue-800 border-blue-200"}`}>
+        {difficulty || "Unknown"}
+      </span>
+    );
+  };
+
+  // Add error state derived from response
+  const isError = response?.includes('Error') || response?.includes('error');
+
   const renderContent = () => {
     switch (activeTab) {
-      case 'description':
-        return (
-          <div className="prose prose-headings:text-blue-600 prose-a:text-blue-600 max-w-none mb-6">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw, rehypeSanitize]}
-              components={markdownComponents}
-            >
-              {problemData.description}
-            </ReactMarkdown>
-          </div>
-        );
-      case 'solution':
-        console.log("solution",problemData);
-        return (
-          <div className="space-y-6">
-            <div className="bg-gray-100 rounded-lg p-6 shadow-lg">
-              <h3 className="text-xl font-semibold text-blue-600 mb-4">Solution Approach</h3>
-              <div className="text-gray-800 space-y-4">
-                <p>Here's an efficient solution to the problem:</p>
-                <div className="bg-white rounded-lg p-4 border border-gray-200">
-                  <SyntaxHighlighter
-                    language="cpp"
-                    style={oneLight}
-                    className="rounded-md"
-                  >
-                    {problemData.solution || '// Solution code will be displayed here'}
-                  </SyntaxHighlighter>
-                </div>
-                <div className="mt-6 space-y-4">
-                 
-                  <div className="text-gray-700 mb-4">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeRaw, rehypeSanitize]}
-                      components={markdownComponents}
-                    >
-                      {problemData.time_complexity}
-                    </ReactMarkdown>
-                  </div>
-                  
-                  
-                  
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+      case "description":
+        return <DescriptionTab problemData={problemData} />;
+      case "results":
+        return <ResultsTab response={response} theme={theme} />;
+      case "solution":
+        return <SolutionTab problemData={problemData} />;
       default:
         return null;
     }
   };
 
-  const markdownComponents = {
-    h1: ({ node, ...props }) => (
-      <h1 className="text-3xl font-bold text-blue-700 mb-4" {...props} />
-    ),
-    h2: ({ node, ...props }) => (
-      <h2 className="text-2xl font-semibold text-blue-600 mb-3 mt-6" {...props} />
-    ),
-    p: ({ node, ...props }) => (
-      <p className="text-base text-gray-800 mb-4 leading-relaxed" {...props} />
-    ),
-    li: ({ node, ...props }) => (
-      <li className="text-base text-gray-800 mb-2" {...props} />
-    ),
-    code({ node, inline, className, children, ...props }) {
-      const match = /language-(\w+)/.exec(className || "");
-      return !inline && match ? (
-        <SyntaxHighlighter
-          style={oneLight}
-          language={match[1]}
-          PreTag="div"
-          {...props}
-          className="rounded-md my-4"
+  // Floating copy button that appears when text is selected
+  const renderFloatingCopyButton = () => {
+    if (!selectedText) return null;
+    
+    return (
+      <div className="fixed z-50 bg-white rounded-md shadow-lg border border-gray-200 flex items-center">
+        <button
+          onClick={() => copyToClipboard()}
+          className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-md transition-colors"
         >
-          {String(children).replace(/\n$/, "")}
-        </SyntaxHighlighter>
-      ) : (
-        <code className="bg-gray-100 text-blue-700 px-1 rounded" {...props}>
-          {children}
-        </code>
-      );
-    },
+          {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+          <span className="text-sm font-medium">{copied ? "Copied!" : "Copy"}</span>
+        </button>
+      </div>
+    );
   };
 
   return (
-    <div className="h-full overflow-auto p-6 bg-white">
+    <div className="h-full overflow-auto p-6 bg-gradient-to-b from-white to-gray-50 relative">
       {renderContent()}
+      
+      {selectedText && renderFloatingCopyButton()}
+      
+      {/* Notification for successful copy */}
+      <div className={`fixed bottom-4 right-4 bg-black bg-opacity-80 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-opacity ${copied ? 'opacity-100' : 'opacity-0'}`}>
+        <Check size={16} />
+        <span>Copied to clipboard!</span>
+      </div>
+      
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        /* Ensure text is selectable */
+        .prose, .prose *, pre, code, p, div, span, h1, h2, h3, h4, h5, h6 {
+          user-select: text !important;
+          -webkit-user-select: text !important;
+          -moz-user-select: text !important;
+          -ms-user-select: text !important;
+        }
+        
+        /* Style the selection */
+        ::selection {
+          background-color: rgba(79, 70, 229, 0.2);
+          color: inherit;
+        }
+      `}</style>
     </div>
   );
 };

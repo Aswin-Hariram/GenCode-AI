@@ -17,6 +17,7 @@ export const useProblemData = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  
 
   useEffect(() => {
     const fetchProblemData = async () => {
@@ -43,8 +44,10 @@ export const useProblemData = () => {
           testcases: data.testcases,
           difficulty: data.difficulty,
           time_complexity: data.time_complexity,
-          space_complexity: data.space_complexity
+          space_complexity: data.space_complexity,
+          initial_code: data.initial_code
         });
+        
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err.message || 'An unexpected error occurred');
