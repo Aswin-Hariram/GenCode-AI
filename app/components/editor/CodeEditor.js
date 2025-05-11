@@ -279,17 +279,37 @@ const CodeEditor = ({
           <button
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md flex items-center transition-colors"
             onClick={onRunCode}
+            disabled={isRunning}
             title="Run code (Ctrl+Enter)"
           >
-            <FiPlay className="mr-1.5" size={14} /> Run
+            {isRunning ? (
+              <>
+                <div className="animate-spin h-4 w-4 border-2 border-t-transparent border-white rounded-full mr-1.5"></div>
+                Running...
+              </>
+            ) : (
+              <>
+                <FiPlay className="mr-1.5" size={14} /> Run
+              </>
+            )}
           </button>
           
           <button 
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md flex items-center transition-colors"
             onClick={handleSubmitCode}
+            disabled={isSubmitting}
             title="Submit code (Ctrl+S)"
           >
-            <FiUpload className="mr-1.5" size={14} /> Submit
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin h-4 w-4 border-2 border-t-transparent border-white rounded-full mr-1.5"></div>
+                Submitting...
+              </>
+            ) : (
+              <>
+                <FiUpload className="mr-1.5" size={14} /> Submit
+              </>
+            )}
           </button>
         </div>
       </div>

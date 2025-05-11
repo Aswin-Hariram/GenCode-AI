@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "No Boring DSA - Interactive Learning Platform",
+  title: "Gen Code",
   description: "Learn Data Structures and Algorithms interactively",
 };
 

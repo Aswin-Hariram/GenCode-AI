@@ -12,7 +12,7 @@ import ErrorDisplay from './components/ErrorDisplay';
 import { useProblemData } from './hooks/useProblemData';
 import { INITIAL_CODE } from './utils/constants';
 
-const LeetCodeClone = () => {
+const GenCode = () => {
   // State management
   const [code, setCode] = useState(INITIAL_CODE);
   const [activeTab, setActiveTab] = useState('description');
@@ -63,7 +63,7 @@ const LeetCodeClone = () => {
     setError(null); // Reset any previous errors
     
     try {
-      const response = await fetch('http://127.0.0.1:8080/submit', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${process.env.NEXT_PUBLIC_SUBMIT_ENDPOINT}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,6 +159,19 @@ const LeetCodeClone = () => {
     }
   };
 
+  // Loading indicator component for the Submit button
+  const SubmitButtonContent = () => {
+    if (isSubmitting) {
+      return (
+        <div className="flex items-center space-x-2">
+          <div className="animate-spin h-4 w-4 border-2 border-t-transparent border-white rounded-full"></div>
+          <span>Submitting...</span>
+        </div>
+      );
+    }
+    return 'Submit Code';
+  };
+
   // Editor handlers
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -175,7 +188,7 @@ const LeetCodeClone = () => {
     setIsRunning(true);
     setError(null);
     try {
-      const response = await fetch('http://127.0.0.1:8080/compiler', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${process.env.NEXT_PUBLIC_COMPILER_ENDPOINT}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -211,6 +224,19 @@ const LeetCodeClone = () => {
     } finally {
       setIsRunning(false);
     }
+  };
+
+  // Loading indicator component for the Run button
+  const RunButtonContent = () => {
+    if (isRunning) {
+      return (
+        <div className="flex items-center space-x-2">
+          <div className="animate-spin h-4 w-4 border-2 border-t-transparent border-white rounded-full"></div>
+          <span>Running...</span>
+        </div>
+      );
+    }
+    return 'Run Code';
   };
 
   if (isLoading) {
@@ -345,4 +371,4 @@ const LeetCodeClone = () => {
   );
 }
 
-export default LeetCodeClone;
+export default GenCode;
