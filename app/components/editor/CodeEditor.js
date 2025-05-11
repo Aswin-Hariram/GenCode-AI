@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { 
   FiPlay, 
   FiMaximize, 
@@ -23,19 +23,22 @@ const CodeEditor = ({
   onToggleFullscreen,
   setLanguage,
   onSubmitCode,
-  problemData
+  problemData,
+  theme,
+  isRunning,
+  isSubmitting
 }) => {
-  const handleToggleFullscreen = () => {
+  const handleToggleFullscreen = useCallback(() => {
     if (onToggleFullscreen) {
       onToggleFullscreen();
     } else {
       console.warn("onToggleFullscreen handler not provided to CodeEditor");
     }
-  };
+  }, [onToggleFullscreen]);
   
   const editorRef = useRef(null);
   const [autoSuggestEnabled, setAutoSuggestEnabled] = useState(true);
-  const [theme, setTheme] = useState("vs-dark");
+  const [editorTheme, setEditorTheme] = useState("vs-dark");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentFontSize, setCurrentFontSize] = useState(initialFontSize);
 
@@ -54,9 +57,9 @@ const CodeEditor = ({
         if (editorRef.current) editorRef.current.updateOptions({ fontSize: parsedSize });
       }
     }
-    if (storedTheme) setTheme(storedTheme);
+    if (storedTheme) setEditorTheme(storedTheme);
     if (storedAutoSuggest !== null) setAutoSuggestEnabled(storedAutoSuggest === "true");
-  }, [setLanguage]);
+  }, [setLanguage, handleToggleFullscreen]);
 
   const handleEditorMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -128,8 +131,8 @@ const CodeEditor = ({
   };
 
   const handleThemeToggle = () => {
-    const newTheme = theme === "vs-dark" ? "light" : "vs-dark";
-    setTheme(newTheme);
+    const newTheme = editorTheme === "vs-dark" ? "light" : "vs-dark";
+    setEditorTheme(newTheme);
     localStorage.setItem("editor-theme", newTheme);
   };
 
@@ -165,7 +168,7 @@ const CodeEditor = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [handleToggleFullscreen]);
   
   // Determine text/bg color classes based on theme
   const themeClasses = theme === "vs-dark" 
@@ -296,7 +299,7 @@ const CodeEditor = ({
           height={isFullscreen ? "calc(100vh - 60px)" : "100%"}
           language={language}
           value={code}
-          theme={theme}
+          theme={editorTheme}
           onChange={onCodeChange}
           onMount={handleEditorMount}
           options={{

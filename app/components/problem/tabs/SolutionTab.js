@@ -34,7 +34,7 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
         <div className={`space-y-4 ${
           theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
         }`}>
-          <p>Here's an efficient solution to the problem:</p>
+          <p>Here&apos;s an efficient solution to the problem:</p>
           <div className={`rounded-lg p-4 relative ${
             theme === 'dark' 
               ? 'bg-gray-900 border border-gray-700' 

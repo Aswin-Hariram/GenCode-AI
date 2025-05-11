@@ -1,5 +1,6 @@
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomOneLight, atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import Image from "next/image";
 
 const selectableStyle = "[&_*]:!select-text [&_*]:!pointer-events-auto";
 
@@ -85,7 +86,18 @@ export const getMarkdownComponents = (theme) => ({
   td: ({ node, ...props }) => (
     <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300 border border-gray-700' : 'text-gray-700 border border-gray-200'} ${selectableStyle}`} {...props} />
   ),
-  img: ({ node, ...props }) => (
-    <img className={`max-w-full h-auto rounded-lg mx-auto my-4 ${theme === 'dark' ? 'opacity-90' : ''}`} {...props} />
-  ),
+  img: ({ node, src, ...props }) => {
+    // If src is not provided, use an empty alt text for decorative images
+    const altText = props.alt || '';
+    return (
+      <Image 
+        src={src || ''} 
+        alt={altText}
+        width={500} 
+        height={300} 
+        className={`max-w-full h-auto rounded-lg mx-auto my-4 ${theme === 'dark' ? 'opacity-90' : ''}`} 
+        {...props} 
+      />
+    );
+  },
 });

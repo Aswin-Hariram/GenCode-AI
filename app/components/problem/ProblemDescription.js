@@ -1,22 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import rehypeSanitize from "rehype-sanitize";
-import { 
-  Clock, 
-  Award, 
-  Code2, 
-  FileText, 
-  Layers, 
-  Sparkles, 
-  Copy,
-  Check,
-  ChevronRight
-} from "lucide-react";
+import { Check } from "lucide-react";
 import DescriptionTab from './tabs/DescriptionTab';
 import ResultsTab from './tabs/ResultsTab';
 import SolutionTab from './tabs/SolutionTab';
@@ -104,19 +88,13 @@ const ProblemDescription = ({ problemData, activeTab, response, theme }) => {
     
     return (
       <div className="fixed z-50 bg-white rounded-md shadow-lg border border-gray-200 flex items-center">
-        {/* <button
-          onClick={() => copyToClipboard()}
-          className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-md transition-colors"
-        >
-          {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-          <span className="text-sm font-medium">{copied ? "Copied!" : "Copy"}</span>
-        </button> */}
+        {/* Placeholder for future floating copy button implementation */}
       </div>
     );
   };
 
   return (
-    <div className={`h-full overflow-auto p-6   relative`}>
+    <div className="h-full overflow-auto p-6 relative">
       {renderContent()}
       
       {selectedText && renderFloatingCopyButton()}

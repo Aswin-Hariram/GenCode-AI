@@ -1,13 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-
-import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark, oneLight } from 'react-syntax-highlighter/dist/cjs/styles/prism';
-import remarkGfm from 'remark-gfm';
 import Split from 'react-split';
-import { FiCode, FiClock, FiFileText, FiList, FiCheck, FiX, FiMaximize, FiMinimize, FiSun, FiMoon } from 'react-icons/fi';
+import { FiSun, FiMoon, FiX, FiFileText, FiCode, FiBarChart2 } from 'react-icons/fi';
 import ProblemHeader from './components/problem/ProblemHeader';
 import ProblemDescription from './components/problem/ProblemDescription';
 import CodeEditor from './components/editor/CodeEditor';
@@ -15,45 +10,50 @@ import ConsoleModal from './components/ConsoleModal';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorDisplay from './components/ErrorDisplay';
 import { useProblemData } from './hooks/useProblemData';
-import { INITIAL_CODE, TABS } from './utils/constants';
+import { INITIAL_CODE } from './utils/constants';
 
 const LeetCodeClone = () => {
   // State management
   const [code, setCode] = useState(INITIAL_CODE);
   const [activeTab, setActiveTab] = useState('description');
   const [theme, setTheme] = useState('light');
+  
+  // Load theme from localStorage on client-side only
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+  }, []);
   const [language, setLanguage] = useState('cpp');
-  const [fontSize, setFontSize] = useState(14);
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [response, setResponse] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState(null);
   const [activeTestCase, setActiveTestCase] = useState(0);
-  const [submittedSolution, setSubmittedSolution] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [compilationResult, setCompilationResult] = useState(null);
   const editorRef = useRef(null);
   const consoleHeight = useRef(200);
 
-  const { problemData, isLoading: loading, error: problemError } = useProblemData();
+  const { problemData, isLoading, error: problemError } = useProblemData();
 
   const tabs = [
-    { id: 'description', label: 'Description', icon: <FiFileText className="mr-2" /> },
-    { id: 'solution', label: 'Solution', icon: <FiCode className="mr-2" /> },
-    { id: 'results', label: 'Results', icon: <FiClock className="mr-2" /> },
+    { id: 'description', label: 'Description', icon: <FiFileText className="mr-2" size={18} /> },
+    { id: 'solution', label: 'Solution', icon: <FiCode className="mr-2" size={18} /> },
+    { id: 'results', label: 'Results', icon: <FiBarChart2 className="mr-2" size={18} /> },
   ];
 
   // Toggle functions
   const toggleConsole = () => setIsConsoleOpen(!isConsoleOpen);
-  
-  // Fixed the toggleFullscreen function to properly update state
-  const toggleFullscreen = () => {
-    setIsFullscreen(prevState => !prevState);
+  const toggleFullscreen = () => setIsFullscreen(prevState => !prevState);
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    // Save theme preference to localStorage
+    localStorage.setItem('theme', newTheme);
   };
-  
-  const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
   const closeConsole = () => setIsConsoleOpen(false);
 
   
@@ -168,8 +168,8 @@ const LeetCodeClone = () => {
     setCode(value);
   };
 
-  const [compilationResult, setCompilationResult] = useState(null);
-  const [showCorrectCode, setShowCorrectCode] = useState(false);
+  // We'll use a constant value for showCorrectCode since we simplified the UI
+  const showCorrectCode = true; // Always show corrected code if available
 
   const runCode = async () => {
     setIsRunning(true);
@@ -198,10 +198,7 @@ const LeetCodeClone = () => {
       setIsConsoleOpen(true);
       console.log('Compilation result:', data.message);
       
-      // Automatically show corrected code if available
-      if (data.corrected_code) {
-        setShowCorrectCode(true);
-      }
+      // No need to handle corrected code display here as we've simplified the UI
       
     } catch (error) {
       console.error('Error running code:', error);
@@ -216,8 +213,8 @@ const LeetCodeClone = () => {
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner />;
+  if (isLoading) {
+    return <LoadingSpinner theme={theme} />;
   }
 
   if (problemError) {
@@ -226,7 +223,13 @@ const LeetCodeClone = () => {
 
   return (
     <div className={`flex flex-col h-screen ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-800'} transition-colors duration-300`}>
-      <ProblemHeader problemData={problemData} theme={theme} />
+      <ProblemHeader 
+        problemData={problemData} 
+        theme={theme} 
+        editorCode={code} 
+        solutionCode={problemData?.solution} 
+        resultsData={response} 
+      />
       <Split
         className={`flex flex-1 overflow-hidden split-horizontal ${theme === 'dark' ? ' bg-gray-800' : 'prose-slate'}`}
         sizes={[45, 55]}
@@ -282,12 +285,12 @@ const LeetCodeClone = () => {
           <CodeEditor
             language={language}
             code={problemData.initial_code}
-            fontSize={fontSize}
+            fontSize={14} // Default font size
             isFullscreen={isFullscreen}
             onCodeChange={handleEditorChange}
             onEditorMount={handleEditorDidMount}
             onRunCode={runCode}
-            onToggleFullscreen={toggleFullscreen} // Fixed prop name
+            onToggleFullscreen={toggleFullscreen}
             setLanguage={setLanguage}
             onSubmitCode={handleSubmitCode}
             problemData={problemData}
