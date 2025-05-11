@@ -4,26 +4,36 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import { Layers, FileText } from "lucide-react";
-import { markdownComponents } from "../markdown/MarkdownComponents";
+import { getMarkdownComponents } from "../markdown/MarkdownComponents";
 
-const DescriptionTab = ({ problemData }) => {
+const DescriptionTab = ({ problemData, theme = 'light' }) => {
+  const markdownComponents = getMarkdownComponents(theme);
+  
   return (
     <div className="animate-fadeIn space-y-6">
       <div className="flex items-center gap-3 mb-4">
         {problemData.number && (
-          <span className="bg-blue-100 text-blue-800 font-medium text-sm px-3 py-1 rounded-full">
+          <span className={`font-medium text-sm px-3 py-1 rounded-full ${
+            theme === 'dark' 
+              ? 'bg-blue-900/30 text-blue-400' 
+              : 'bg-blue-100 text-blue-800'
+          }`}>
             #{problemData.number}
           </span>
         )}
         
         {problemData.tags && problemData.tags.map((tag, index) => (
-          <span key={index} className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">
+          <span key={index} className={`text-xs px-2 py-1 rounded-full ${
+            theme === 'dark' 
+              ? 'bg-gray-800 text-gray-300' 
+              : 'bg-gray-100 text-gray-700'
+          }`}>
             {tag}
           </span>
         ))}
       </div>
       
-      <div className="prose prose-slate lg:prose-lg max-w-none">
+      <div className={`prose ${theme === 'dark' ? 'prose-invert' : 'prose-slate'} lg:prose-lg max-w-none`}>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw, rehypeSanitize]}
@@ -35,30 +45,54 @@ const DescriptionTab = ({ problemData }) => {
       
       {problemData.examples && (
         <div className="space-y-4 mt-8">
-          <h3 className="text-lg font-semibold flex items-center text-gray-800">
-            <Layers className="mr-2 w-5 h-5 text-blue-600" />
+          <h3 className={`text-lg font-semibold flex items-center ${
+            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+          }`}>
+            <Layers className={`mr-2 w-5 h-5 ${
+              theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
+            }`} />
             Examples
           </h3>
           {problemData.examples.map((example, index) => (
-            <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div key={index} className={`rounded-lg p-4 shadow-sm ${
+              theme === 'dark' 
+                ? 'bg-gray-800 border border-gray-700' 
+                : 'bg-gray-50 border border-gray-200'
+            }`}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">Input:</p>
-                  <div className="bg-white border border-gray-200 rounded-md p-3 font-mono text-sm">
+                  <p className={`text-sm font-medium mb-2 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>Input:</p>
+                  <div className={`rounded-md p-3 font-mono text-sm ${
+                    theme === 'dark' 
+                      ? 'bg-gray-900 border border-gray-700' 
+                      : 'bg-white border border-gray-200'
+                  }`}>
                     {example.input}
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">Output:</p>
-                  <div className="bg-white border border-gray-200 rounded-md p-3 font-mono text-sm">
+                  <p className={`text-sm font-medium mb-2 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>Output:</p>
+                  <div className={`rounded-md p-3 font-mono text-sm ${
+                    theme === 'dark' 
+                      ? 'bg-gray-900 border border-gray-700' 
+                      : 'bg-white border border-gray-200'
+                  }`}>
                     {example.output}
                   </div>
                 </div>
               </div>
               {example.explanation && (
                 <div className="mt-3">
-                  <p className="text-sm font-medium text-gray-600 mb-2">Explanation:</p>
-                  <div className="text-sm text-gray-700">{example.explanation}</div>
+                  <p className={`text-sm font-medium mb-2 ${
+                    theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>Explanation:</p>
+                  <div className={`text-sm ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>{example.explanation}</div>
                 </div>
               )}
             </div>
@@ -68,11 +102,17 @@ const DescriptionTab = ({ problemData }) => {
       
       {problemData.constraints && (
         <div className="mt-8">
-          <h3 className="text-lg font-semibold flex items-center text-gray-800 mb-3">
-            <FileText className="mr-2 w-5 h-5 text-blue-600" />
+          <h3 className={`text-lg font-semibold flex items-center mb-3 ${
+            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+          }`}>
+            <FileText className={`mr-2 w-5 h-5 ${
+              theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
+            }`} />
             Constraints
           </h3>
-          <ul className="list-disc list-inside space-y-1 text-gray-700">
+          <ul className={`list-disc list-inside space-y-1 ${
+            theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+          }`}>
             {problemData.constraints.map((constraint, index) => (
               <li key={index} className="text-sm">{constraint}</li>
             ))}
