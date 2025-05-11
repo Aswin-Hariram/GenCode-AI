@@ -13,10 +13,10 @@ import {
 import Editor from "@monaco-editor/react";
 
 const CodeEditor = ({
-  language,
-  code,
-  fontSize = 14,
-  isFullscreen,
+  language = "javascript",
+  code = "",
+  fontSize: initialFontSize = 14,
+  isFullscreen = false,
   onCodeChange,
   onEditorMount,
   onRunCode,
@@ -25,45 +25,80 @@ const CodeEditor = ({
   onSubmitCode,
   problemData
 }) => {
+  const handleToggleFullscreen = () => {
+    if (onToggleFullscreen) {
+      onToggleFullscreen();
+    } else {
+      console.warn("onToggleFullscreen handler not provided to CodeEditor");
+    }
+  };
+  
   const editorRef = useRef(null);
   const [autoSuggestEnabled, setAutoSuggestEnabled] = useState(true);
   const [theme, setTheme] = useState("vs-dark");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [currentFontSize, setCurrentFontSize] = useState(initialFontSize);
 
   useEffect(() => {
+    // Load user preferences from localStorage
     const storedLang = localStorage.getItem("editor-lang");
     const storedFont = localStorage.getItem("editor-font");
     const storedTheme = localStorage.getItem("editor-theme");
+    const storedAutoSuggest = localStorage.getItem("editor-auto-suggest");
     
     if (storedLang) setLanguage(storedLang);
-    if (storedFont) editorRef.current?.updateOptions({ fontSize: parseInt(storedFont) });
+    if (storedFont) {
+      const parsedSize = parseInt(storedFont);
+      if (!isNaN(parsedSize) && parsedSize >= 10 && parsedSize <= 30) {
+        setCurrentFontSize(parsedSize);
+        if (editorRef.current) editorRef.current.updateOptions({ fontSize: parsedSize });
+      }
+    }
     if (storedTheme) setTheme(storedTheme);
-  }, []);
+    if (storedAutoSuggest !== null) setAutoSuggestEnabled(storedAutoSuggest === "true");
+  }, [setLanguage]);
 
   const handleEditorMount = (editor, monaco) => {
     editorRef.current = editor;
 
+    // Apply the current font size when editor mounts
+    editor.updateOptions({ fontSize: currentFontSize });
+
+    // Save font size changes
     editor.onDidChangeConfiguration(() => {
       const opts = editor.getRawOptions();
-      localStorage.setItem("editor-font", opts.fontSize?.toString());
+      if (opts.fontSize) {
+        localStorage.setItem("editor-font", opts.fontSize.toString());
+        setCurrentFontSize(opts.fontSize);
+      }
     });
 
     // Keyboard shortcut: Ctrl+Enter to run code
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
-      onRunCode?.();
+      if (onRunCode) onRunCode();
     });
 
     // Keyboard shortcut: Ctrl+S to submit code
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, (e) => {
-      e?.preventDefault();
+      if (e) e.preventDefault();
       handleSubmitCode();
+    });
+    
+    // Keyboard shortcut: F11 or Alt+Enter for fullscreen toggle
+    editor.addCommand(monaco.KeyCode.F11, () => {
+      handleToggleFullscreen();
+    });
+    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.Enter, () => {
+      handleToggleFullscreen();
     });
 
     if (onEditorMount) onEditorMount(editor, monaco);
   };
 
   const handleSubmitCode = () => {
-    const typedCode = editorRef.current?.getValue() || '';
+    if (!editorRef.current) return;
+    
+    const typedCode = editorRef.current.getValue() || '';
     
     // Call onSubmitCode if provided
     onSubmitCode?.({
@@ -77,13 +112,18 @@ const CodeEditor = ({
   const toggleAutoSuggest = () => {
     const newValue = !autoSuggestEnabled;
     setAutoSuggestEnabled(newValue);
-    editorRef.current?.updateOptions({
-      quickSuggestions: newValue,
-      suggestOnTriggerCharacters: newValue,
-      acceptSuggestionOnEnter: newValue ? "on" : "off"
-    });
-    if (newValue) {
-      editorRef.current?.trigger("manual", "editor.action.triggerSuggest", {});
+    localStorage.setItem("editor-auto-suggest", newValue.toString());
+    
+    if (editorRef.current) {
+      editorRef.current.updateOptions({
+        quickSuggestions: newValue,
+        suggestOnTriggerCharacters: newValue,
+        acceptSuggestionOnEnter: newValue ? "on" : "off"
+      });
+      
+      if (newValue) {
+        editorRef.current.trigger("manual", "editor.action.triggerSuggest", {});
+      }
     }
   };
 
@@ -95,22 +135,56 @@ const CodeEditor = ({
 
   const changeFontSize = (delta) => {
     if (!editorRef.current) return;
-    const currentSize = editorRef.current.getOption(fontSize);
-    const newSize = Math.max(10, Math.min(currentSize + delta, 30));
+    
+    const newSize = Math.max(10, Math.min(currentFontSize + delta, 30));
+    
+    // Update the state first
+    setCurrentFontSize(newSize);
+    
+    // Update the editor font size
     editorRef.current.updateOptions({ fontSize: newSize });
+    
+    // Persist to localStorage
     localStorage.setItem("editor-font", newSize.toString());
   };
+
+  // Ensure the toggle fullscreen function works in keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // F11 key for fullscreen toggle
+      if (event.key === 'F11') {
+        event.preventDefault();
+        handleToggleFullscreen();
+      }
+      // Alt+Enter for fullscreen toggle
+      if (event.key === 'Enter' && event.altKey) {
+        event.preventDefault();
+        handleToggleFullscreen();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+  
+  // Determine text/bg color classes based on theme
+  const themeClasses = theme === "vs-dark" 
+    ? { bg: "bg-gray-700", border: "border-gray-600", text: "text-white", hover: "hover:bg-gray-700" }
+    : { bg: "bg-white", border: "border-gray-300", text: "text-gray-700", hover: "hover:bg-gray-200" };
 
   return (
     <div className={`flex flex-col ${isFullscreen ? "fixed inset-0 z-50 bg-slate-900 p-4 overflow-hidden" : "h-full"}`}>
       <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700 shadow-md">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-4">
           <div className="relative">
             <button 
               className="flex items-center bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-md text-sm transition-colors"
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              aria-expanded={isSettingsOpen}
+              aria-haspopup="true"
             >
-              <span className="capitalize mr-1">{language}</span>
+              <FiSettings size={14} className="mr-1.5" />
+              <span className="capitalize mr-1">{language === "cpp" ? "C++" : language}</span>
               <FiChevronDown size={14} />
             </button>
             
@@ -138,10 +212,7 @@ const CodeEditor = ({
                   </div>
                   <button
                     className="flex items-center justify-between w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700"
-                    onClick={() => {
-                      toggleAutoSuggest();
-                      setIsSettingsOpen(false);
-                    }}
+                    onClick={toggleAutoSuggest}
                   >
                     <span>Auto-suggest</span>
                     <div className={`w-8 h-4 rounded-full relative ${autoSuggestEnabled ? 'bg-green-500' : 'bg-slate-600'}`}>
@@ -154,41 +225,50 @@ const CodeEditor = ({
                       <button 
                         className="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-white"
                         onClick={() => changeFontSize(-1)}
+                        aria-label="Decrease font size"
                       >
                         -
                       </button>
                       <span className="px-2 py-0.5 bg-slate-800 rounded text-white min-w-6 text-center">
-                        {fontSize}
+                        {currentFontSize}
                       </span>
                       <button 
                         className="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-white"
                         onClick={() => changeFontSize(1)}
+                        aria-label="Increase font size"
                       >
                         +
                       </button>
                     </div>
                   </div>
+                  <button
+                    className="flex items-center justify-between w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700"
+                    onClick={() => {
+                      handleThemeToggle();
+                      setIsSettingsOpen(false);
+                    }}
+                  >
+                    <span>Theme</span>
+                    <div className="flex items-center">
+                      {theme === "vs-dark" ? (
+                        <FiSun size={14} className="text-yellow-400" />
+                      ) : (
+                        <FiMoon size={14} className="text-slate-400" />
+                      )}
+                    </div>
+                  </button>
                 </div>
               </div>
             )}
           </div>
-          
-          <button
-            className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-md transition-colors"
-            onClick={handleThemeToggle}
-            aria-label="Toggle theme"
-            title={`Switch to ${theme === "vs-dark" ? "light" : "dark"} theme`}
-          >
-            {theme === "vs-dark" ? <FiSun size={14} /> : <FiMoon size={14} />}
-          </button>
         </div>
 
         <div className="flex items-center space-x-2">
           <button
             className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-md transition-colors"
-            onClick={onToggleFullscreen}
+            onClick={handleToggleFullscreen}
             aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            title={isFullscreen ? "Exit fullscreen (F11)" : "Enter fullscreen (F11)"}
           >
             {isFullscreen ? <FiMinimize size={14} /> : <FiMaximize size={14} />}
           </button>
@@ -196,6 +276,7 @@ const CodeEditor = ({
           <button
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md flex items-center transition-colors"
             onClick={onRunCode}
+            title="Run code (Ctrl+Enter)"
           >
             <FiPlay className="mr-1.5" size={14} /> Run
           </button>
@@ -203,6 +284,7 @@ const CodeEditor = ({
           <button 
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md flex items-center transition-colors"
             onClick={handleSubmitCode}
+            title="Submit code (Ctrl+S)"
           >
             <FiUpload className="mr-1.5" size={14} /> Submit
           </button>
@@ -211,14 +293,14 @@ const CodeEditor = ({
 
       <div className="h-full overflow-hidden">
         <Editor
-          height={isFullscreen ? "calc(100vh - 120px)" : "100%"}
+          height={isFullscreen ? "calc(100vh - 60px)" : "100%"}
           language={language}
           value={code}
           theme={theme}
           onChange={onCodeChange}
           onMount={handleEditorMount}
           options={{
-            fontSize: fontSize,
+            fontSize: currentFontSize,
             minimap: { enabled: true },
             scrollBeyondLastLine: false,
             automaticLayout: true,

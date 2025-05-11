@@ -6,7 +6,7 @@ import rehypeSanitize from "rehype-sanitize";
 import { getMarkdownComponents } from "../markdown/MarkdownComponents";
 
 const ResultsTab = ({ response, theme = 'light' }) => {
-  const isError = response?.includes('Error') || response?.includes('error');
+  const isError = response?.includes('#NO ACTUAL LOGIC FOUND') || response?.includes('Code Score: 0');
   const markdownComponents = getMarkdownComponents(theme);
 
   return (

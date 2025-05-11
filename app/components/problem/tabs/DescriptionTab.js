@@ -6,11 +6,11 @@ import rehypeSanitize from "rehype-sanitize";
 import { Layers, FileText } from "lucide-react";
 import { getMarkdownComponents } from "../markdown/MarkdownComponents";
 
-const DescriptionTab = ({ problemData, theme = 'light' }) => {
+const DescriptionTab = ({ problemData, theme  }) => {
   const markdownComponents = getMarkdownComponents(theme);
   
   return (
-    <div className="animate-fadeIn space-y-6">
+    <div className={`animate-fadeIn space-y-6 ${theme === 'dark' ? ' bg-gray-800' : 'prose-slate'} `}>
       <div className="flex items-center gap-3 mb-4">
         {problemData.number && (
           <span className={`font-medium text-sm px-3 py-1 rounded-full ${
@@ -33,7 +33,7 @@ const DescriptionTab = ({ problemData, theme = 'light' }) => {
         ))}
       </div>
       
-      <div className={`prose ${theme === 'dark' ? 'prose-invert' : 'prose-slate'} lg:prose-lg max-w-none`}>
+      <div className={`prose ${theme === 'dark' ? 'prose-invert bg-gray-800' : 'prose-slate'} lg:prose-lg max-w-none`}>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw, rehypeSanitize]}

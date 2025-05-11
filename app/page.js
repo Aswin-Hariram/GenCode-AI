@@ -7,13 +7,11 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import remarkGfm from 'remark-gfm';
 import Split from 'react-split';
-import { FiCode, FiClock, FiTerminal, FiCheck, FiX, FiMaximize, FiMinimize, FiSun, FiMoon } from 'react-icons/fi';
+import { FiCode, FiClock, FiFileText, FiList, FiCheck, FiX, FiMaximize, FiMinimize, FiSun, FiMoon } from 'react-icons/fi';
 import ProblemHeader from './components/problem/ProblemHeader';
 import ProblemDescription from './components/problem/ProblemDescription';
 import CodeEditor from './components/editor/CodeEditor';
 import ConsoleModal from './components/ConsoleModal';
-// Remove this import
-// import SubmitModal from './components/SubmitModal';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorDisplay from './components/ErrorDisplay';
 import { useProblemData } from './hooks/useProblemData';
@@ -39,23 +37,27 @@ const LeetCodeClone = () => {
   const editorRef = useRef(null);
   const consoleHeight = useRef(200);
 
-  // Removed Modal.setAppElement as it's no longer needed
-
   const { problemData, isLoading: loading, error: problemError } = useProblemData();
 
   const tabs = [
-    { id: 'description', label: 'Description', icon: <FiTerminal className="mr-2" /> },
+    { id: 'description', label: 'Description', icon: <FiFileText className="mr-2" /> },
     { id: 'solution', label: 'Solution', icon: <FiCode className="mr-2" /> },
     { id: 'results', label: 'Results', icon: <FiClock className="mr-2" /> },
-    { id: 'submissions', label: 'Submissions', icon: <FiTerminal className="mr-2" /> }
   ];
 
   // Toggle functions
   const toggleConsole = () => setIsConsoleOpen(!isConsoleOpen);
-  const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
+  
+  // Fixed the toggleFullscreen function to properly update state
+  const toggleFullscreen = () => {
+    setIsFullscreen(prevState => !prevState);
+  };
+  
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
   const closeConsole = () => setIsConsoleOpen(false);
 
+  
+  
   const handleSubmitCode = async (submissionData) => {
     setIsSubmitting(true);
     setError(null); // Reset any previous errors
@@ -79,10 +81,57 @@ const LeetCodeClone = () => {
       }
   
       const result = await response.json();
+      console.log(result);
+      // Save submission to localStorage
+      const saveSubmission = () => {
+        try {
+          // Create a new submission entry
+          const newSubmission = {
+            id: Date.now().toString(),
+            status: result.status,
+            language: language,
+            runtime: result.runtime || 'N/A',
+            memory: result.memory_used || 'N/A',
+            timestamp: new Date().toISOString()
+          };
+         
+          // Get existing submissions from localStorage
+          const allSubmissions = JSON.parse(localStorage.getItem('submissions')) || {};
+          
+          // Add the new submission to the problem's submissions array
+          const problemId = problemData.id || 'unknown';
+          if (!allSubmissions[problemId]) {
+            allSubmissions[problemId] = [];
+          }
+          allSubmissions[problemId].unshift(newSubmission);
+          
+          // Save back to localStorage
+          localStorage.setItem('submissions', JSON.stringify(allSubmissions));
+          
+        } catch (error) {
+          console.error('Error saving submission:', error);
+        }
+      };
+      
+      // Save the submission
+      saveSubmission();
       if (result.error) {
         throw new Error(result.error);
       }
-  
+      
+      // Record the submission in local storage
+      const newSubmission = {
+        id: `sub_${Date.now()}`,
+        status: result.status || (result.markdown_report?.includes('Accepted') ? 'Accepted' : 'Failed'),
+        language: language,
+        runtime: result.runtime || 'N/A',
+        memory: result.memory || 'N/A',
+        timestamp: new Date().toISOString(),
+        code: code,
+        problem_id: problemData.id,
+        problem_title: problemData.title
+      };
+      
       setResponse(result.markdown_report);
       setActiveTab('results');
     } catch (error) {
@@ -90,6 +139,21 @@ const LeetCodeClone = () => {
       setError(error.message || 'Failed to submit solution. Please try again.');
       setResponse(`### Error Submitting Solution\n\n${error.message || 'An unexpected error occurred. Please try again.'}`);
       setActiveTab('results'); // Show error in results tab
+      
+      // Record failed submission
+      const failedSubmission = {
+        id: `sub_${Date.now()}`,
+        status: 'Error',
+        language: language,
+        runtime: 'N/A',
+        memory: 'N/A',
+        timestamp: new Date().toISOString(),
+        code: code,
+        problem_id: problemData.id,
+        problem_title: problemData.title,
+        error: error.message
+      };
+      
     } finally {
       setIsSubmitting(false);
     }
@@ -164,7 +228,7 @@ const LeetCodeClone = () => {
     <div className={`flex flex-col h-screen ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-800'} transition-colors duration-300`}>
       <ProblemHeader problemData={problemData} theme={theme} />
       <Split
-        className="flex flex-1 overflow-hidden split-horizontal"
+        className={`flex flex-1 overflow-hidden split-horizontal ${theme === 'dark' ? ' bg-gray-800' : 'prose-slate'}`}
         sizes={[45, 55]}
         minSize={250}
         expandToMin={false}
@@ -210,43 +274,11 @@ const LeetCodeClone = () => {
             activeTab={activeTab} 
             response={response}
             theme={theme} 
+          
           />
         </div>
         <div className="flex flex-col h-full">
-          <div className={`flex justify-between items-center px-4 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'} border-b transition-colors duration-300`}>
-            <div className="flex items-center space-x-4">
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className={`py-1 px-3 text-sm rounded border ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-700'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300`}
-              >
-                <option value="cpp">C++</option>
-                <option value="java">Java</option>
-                <option value="python">Python</option>
-                <option value="javascript">JavaScript</option>
-              </select>
-              <select
-                value={fontSize}
-                onChange={(e) => setFontSize(parseInt(e.target.value))}
-                className={`py-1 px-3 text-sm rounded border ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-700'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300`}
-              >
-                <option value={12}>12px</option>
-                <option value={14}>14px</option>
-                <option value={16}>16px</option>
-                <option value={18}>18px</option>
-                <option value={20}>20px</option>
-              </select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={toggleFullscreen}
-                className={`p-2 rounded ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-200 text-gray-600'} transition-colors duration-200`}
-                aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-              >
-                {isFullscreen ? <FiMinimize size={18} /> : <FiMaximize size={18} />}
-              </button>
-            </div>
-          </div>
+          
           <CodeEditor
             language={language}
             code={problemData.initial_code}
@@ -254,8 +286,8 @@ const LeetCodeClone = () => {
             isFullscreen={isFullscreen}
             onCodeChange={handleEditorChange}
             onEditorMount={handleEditorDidMount}
-            onFullscreenToggle={toggleFullscreen}
             onRunCode={runCode}
+            onToggleFullscreen={toggleFullscreen} // Fixed prop name
             setLanguage={setLanguage}
             onSubmitCode={handleSubmitCode}
             problemData={problemData}

@@ -88,11 +88,11 @@ const ProblemDescription = ({ problemData, activeTab, response, theme }) => {
   const renderContent = () => {
     switch (activeTab) {
       case "description":
-        return <DescriptionTab problemData={problemData} />;
+        return <DescriptionTab problemData={problemData} theme={theme} />;
       case "results":
         return <ResultsTab response={response} theme={theme} />;
       case "solution":
-        return <SolutionTab problemData={problemData} />;
+        return <SolutionTab problemData={problemData} theme={theme}/>;
       default:
         return null;
     }
@@ -104,19 +104,19 @@ const ProblemDescription = ({ problemData, activeTab, response, theme }) => {
     
     return (
       <div className="fixed z-50 bg-white rounded-md shadow-lg border border-gray-200 flex items-center">
-        <button
+        {/* <button
           onClick={() => copyToClipboard()}
           className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-md transition-colors"
         >
           {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
           <span className="text-sm font-medium">{copied ? "Copied!" : "Copy"}</span>
-        </button>
+        </button> */}
       </div>
     );
   };
 
   return (
-    <div className="h-full overflow-auto p-6 bg-gradient-to-b from-white to-gray-50 relative">
+    <div className={`h-full overflow-auto p-6   relative`}>
       {renderContent()}
       
       {selectedText && renderFloatingCopyButton()}
