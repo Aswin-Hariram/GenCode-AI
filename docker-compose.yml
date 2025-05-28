@@ -12,7 +12,7 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
-      - NEXT_PUBLIC_API_BASE_URL=http://backend:5000
+      - NEXT_PUBLIC_API_BASE_URL=http://backend:8000
       - NEXT_PUBLIC_GET_QUESTION_ENDPOINT=/get_dsa_question
       - NEXT_PUBLIC_SUBMIT_ENDPOINT=/submit
       - NEXT_PUBLIC_COMPILER_ENDPOINT=/compiler
@@ -31,7 +31,7 @@ services:
       dockerfile: Dockerfile
     container_name: backend
     ports:
-      - "5000:5000"
+      - "8000:8000"
     environment:
       - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
@@ -42,7 +42,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
