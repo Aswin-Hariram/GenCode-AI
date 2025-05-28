@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSA Practice Bot</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: #4a69bd;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .main-content {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .btn {
+            display: inline-block;
+            background-color: #4a69bd;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #3c5aa6;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>DSA Practice Bot</h1>
+            <p>Enhance your Data Structures and Algorithms skills with practice questions</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <h2>Welcome to DSA Practice Bot</h2>
+            <p>
+                This application helps you practice Data Structures and Algorithms by generating 
+                random questions based on various topics. You can write, test, and submit your 
+                solutions to improve your coding skills.
+            </p>
+            
+            <div class="card">
+                <h3>Get Started</h3>
+                <p>Generate a random DSA question and start practicing:</p>
+                <a href="/get_dsa_question" class="btn">Generate Question</a>
+            </div>
+            
+            <div class="card">
+                <h3>Manage Topics</h3>
+                <p>Add, remove, or view the available DSA topics:</p>
+                <a href="/manage_topics" class="btn btn-secondary">Manage Topics</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 DSA Practice Bot. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

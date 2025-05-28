@@ -1,0 +1,26 @@
+# Core dependencies
+flask==2.3.3
+flask-cors==4.0.0
+werkzeug==2.3.7
+python-dotenv==1.0.0
+gunicorn==21.2.0
+
+# Firebase
+firebase-admin==6.2.0
+google-cloud-firestore==2.11.1
+
+# AI and language processing
+langchain>=0.1.0
+langchain-google-genai>=0.1.0
+google-generativeai>=0.3.0
+
+# Security
+pyopenssl==23.2.0
+
+# Monitoring and logging
+requests==2.31.0
+
+# Development
+pytest==7.4.0
+black==23.7.0
+flake8==6.1.0
