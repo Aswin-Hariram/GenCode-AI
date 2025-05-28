@@ -1,8 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-./Frontend/node_modules
-./Backend/node_modules
+/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -12,17 +11,14 @@
 !.yarn/versions
 
 # testing
-./Frontend/coverage
-./Backend/coverage
+/coverage
 
 # next.js
-./Frontend/.next/
-./Backend/.next/
-./Frontend/out/
+/.next/
+/out/
 
 # production
-./Frontend/build
-./Backend/build
+/build
 
 # misc
 .DS_Store
@@ -59,10 +55,8 @@ __pycache__/
 *.so
 
 # Distribution / packaging
-./Frontend/.Python
-./Backend/.Python
-./Frontend/build/
-./Backend/build/
+.Python
+build/
 develop-eggs/
 dist/
 downloads/
@@ -108,61 +102,45 @@ local_settings.py
 db.sqlite3
 
 # Flask stuff:
-./Frontend/instance/
-./Backend/instance/
-./Frontend/.webassets-cache
-./Backend/.webassets-cache
+instance/
+.webassets-cache
 
 # Scrapy stuff:
-./Frontend/.scrapy
-./Backend/.scrapy
+.scrapy
 
 # Sphinx documentation
-./Frontend/docs/_build/
-./Backend/docs/_build/
+docs/_build/
 
 # PyBuilder
-./Frontend/target/
-./Backend/target/
+target/
 
 # Jupyter Notebook
-./Frontend/.ipynb_checkpoints
-./Backend/.ipynb_checkpoints
+.ipynb_checkpoints
 
 # pyenv
-./Frontend/.python-version
-./Backend/.python-version
+.python-version
 
 # celery beat schedule file
-./Frontend/celerybeat-schedule
-./Backend/celerybeat-schedule
+celerybeat-schedule
 
 # SageMath parsed files
 *.sage.py
 
 # Environments
-./Frontend/.env
-./Backend/.env
-./Frontend/.venv
-./Backend/.venv
-./Frontend/env/
-./Backend/env/
-./Frontend/venv/
-./Backend/venv/
-./Frontend/ENV/
-./Backend/ENV/
-./Frontend/env.bak/
-./Backend/env.bak/
-./Frontend/venv.bak/
-./Backend/venv.bak/
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
 # Spyder project settings
-./Frontend/.spyderproject
-./Backend/.spyproject
-        
+.spyderproject
+.spyproject
+
 # Rope project settings
-./Frontend/.ropeproject
-./Backend/.ropeproject
+.ropeproject
 
 # mkdocs documentation
 /site
