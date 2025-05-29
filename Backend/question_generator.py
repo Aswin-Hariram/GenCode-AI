@@ -58,13 +58,29 @@ def generate_dsa_question(topic: str) -> dict:
 
     ## Solution
     ```cpp
-    // Solution code with main function containing required test cases.
+    // 🏆 Optimal Solution Strategy
+    // - Implement a clean, efficient, and production-ready solution
+    // - Focus on readability, performance, and best practices
+    // - Include comprehensive error handling and input validation
+    // - Provide clear, concise comments explaining the algorithm
+    // - Demonstrate advanced C++ techniques and modern language features
     ```
 
     ## InitialCode
-        ```{"cpp"}
-        // Initial code template with main function containing required test cases.
-        ```
+    ```cpp
+    // 🧩 Initial Problem-Solving Template
+    // Objectives:
+    // - Create a structured skeleton for the solution
+    // - Include function signatures with clear parameter and return types
+    // - Add placeholder comments for key algorithmic steps
+    // - Implement a basic main() function with sample test cases
+    // - Ensure code is compilable and serves as a starting point
+    // - give main function with proper test case exactly like solution
+    // - Dont give any hints for solving the problem
+
+    Note: Only code, dont add objectives.
+    ```
+    
      
     [Note] Ensure that all sections are properly aligned and must add proper spacing between text and lines with '\n' with Markdown formatting.
     """
