@@ -17,13 +17,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
 # Create a non-root user and switch to it
 RUN addgroup --system appgroup && \
     adduser --system --no-create-home --disabled-password --ingroup appgroup appuser
+
+# Install Python dependencies as non-root user
+COPY --chown=appuser:appgroup requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Ensure user's local bin is in PATH
+ENV PATH="/home/appuser/.local/bin:${PATH}"
 
 # Copy application code
 COPY . .

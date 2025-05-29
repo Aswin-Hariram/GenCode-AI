@@ -67,30 +67,10 @@ def generate_dsa_question(topic: str) -> dict:
     ```
 
     ## InitialCode
-    ```cpp
-    /*
-    🧩 Initial Problem-Solving Template
-    
-    Requirements:
-    1. Create a structured skeleton for the solution
-    2. Include properly typed function signatures with clear parameter and return types
-    3. Add descriptive placeholder comments for key algorithmic steps
-    4. Implement a main() function with comprehensive test cases
-    5. Ensure the code is compilable and serves as a starting point
-    6. Include all necessary standard library headers
-    7. Follow C++ best practices and modern standards (C++11 or later)
-    8. Use meaningful variable and function names
-    9. Include proper error handling where applicable
-    10. Provide test cases that cover edge cases and typical scenarios
-    
-    Important Notes:
-    - The solution should be self-contained and ready to compile
-    - Do not include any hints or solutions in the comments
-    - Follow consistent code formatting and indentation
-    - Include appropriate input validation
-    - Add time and space complexity analysis if applicable
-    */
-    ```
+        ```{"cpp"}
+        // Initial code template
+        ```
+     
     [Note] Ensure that all sections are properly aligned and must add proper spacing between text and lines with '\n' with Markdown formatting.
     """
     markdown = llm.invoke(prompt).content
