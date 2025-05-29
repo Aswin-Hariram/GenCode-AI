@@ -63,7 +63,7 @@ def generate_dsa_question(topic: str) -> dict:
 
     ## InitialCode
         ```{"cpp"}
-        // Initial code template
+        // Initial code template with main function containing required test cases.
         ```
      
     [Note] Ensure that all sections are properly aligned and must add proper spacing between text and lines with '\n' with Markdown formatting.
