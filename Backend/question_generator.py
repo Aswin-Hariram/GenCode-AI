@@ -58,7 +58,7 @@ def generate_dsa_question(topic: str) -> dict:
 
     ## Solution
     ```cpp
-   
+    // Solution code with main function containing required test cases.
     ```
 
     ## InitialCode
