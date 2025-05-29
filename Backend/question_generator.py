@@ -58,12 +58,7 @@ def generate_dsa_question(topic: str) -> dict:
 
     ## Solution
     ```cpp
-    // 🏆 Optimal Solution Strategy
-    // - Implement a clean, efficient, and production-ready solution
-    // - Focus on readability, performance, and best practices
-    // - Include comprehensive error handling and input validation
-    // - Provide clear, concise comments explaining the algorithm
-    // - Demonstrate advanced C++ techniques and modern language features
+   
     ```
 
     ## InitialCode
