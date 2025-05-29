@@ -85,9 +85,9 @@ Code to compile and execute:
 ```
 
 Respond in this exact format:
-[Result]: Compilation Success or Failure or Runtime Error
-[Message]: The exact compiler output or runtime output/error (no explanations)
-[CorrectedCode]: N/A
+[Result]: Compilation Success or Failure or Runtime Error or Correct Output of the given code.
+[Message]: The exact compiler output or runtime output/error (explanations without revealing correct answer)
+[CorrectedCode]: if no error then N/A else help to fix the error
 """
     else:
         # Generic prompt for other languages
