@@ -120,9 +120,9 @@ Respond in this exact format:
     result_match = re.search(r'\[Result\]:\s*(.*)', response)
     result = result_match.group(1).strip() if result_match else "Unknown"
 
-    # Extract message (fix duplicate comment)  
-    message_match = re.search(r'\[Message\]:\s*(.*?)(?=\[CorrectedCode\]:)', response, re.DOTALL)
-    message = message_match.group(1).strip() if message_match else "No message provided."
+    # Extract message - handle both cases where CorrectedCode is present or not
+    message_match = re.search(r'\[Message\]:\s*(.*?)(?=(?:\[CorrectedCode\]:|\Z))', response, re.DOTALL)
+    message = message_match.group(1).strip() if message_match and message_match.group(1).strip() else "No output."
 
     # Extract corrected code if available
     corrected_code_match = re.search(r'```' + lang + r'(.*?)```', response, re.DOTALL)
