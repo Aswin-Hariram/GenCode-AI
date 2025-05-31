@@ -1,12 +1,14 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, redirect, url_for, flash
 from flask_cors import CORS
-from topic_manager import get_random_topic
+from topic_manager import get_random_topic, get_recent_topics, add_topic as add_topic_manager
 from question_generator import generate_dsa_question
 from codeCompiler import compile_code
 from submitCode import submit_code
 import os
 import traceback
+from datetime import datetime
 from dotenv import load_dotenv
+from firebase_service import FirebaseService
 
 # Load environment variables from .env file if it exists
 load_dotenv()
@@ -277,9 +279,26 @@ def health_check():
     return jsonify({'status': 'healthy'}), 200
 
 # Root path handler
+@app.route('/recent')
+def recent_topics():
+    """Display the recent topics page"""
+    try:
+        recent_topics = get_recent_topics(limit=15)
+        return render_template('recent_topics.html', recent_topics=recent_topics)
+    except Exception as e:
+        print(f"Error in recent_topics: {str(e)}")
+        return render_template('recent_topics.html', recent_topics=[])
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    """Render the main index page with recent topics"""
+    try:
+        # Get recent topics for the dashboard (limit to 5 for the main page)
+        recent_topics = get_recent_topics(limit=5)
+        return render_template('index.html', recent_topics=recent_topics)
+    except Exception as e:
+        print(f"Error in index route: {str(e)}")
+        return render_template('index.html', recent_topics=[])
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))  # Default to 8001 for local dev

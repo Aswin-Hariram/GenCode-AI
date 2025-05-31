@@ -1,6 +1,7 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
+import random
 
 class FirebaseService:
     _instance = None
@@ -29,31 +30,67 @@ class FirebaseService:
     
     @classmethod
     def add_to_history(cls, topic_name):
-        """Add a topic to history and maintain only last 15 entries"""
-        history_ref = cls.get_topic_history_collection()
+        """
+        Add a topic to history and maintain only last 15 entries
         
-        # Add new entry with timestamp
-        history_ref.add({
-            'topic_name': topic_name,
-            'used_at': firestore.SERVER_TIMESTAMP
-        })
-        
-        # Get all history entries sorted by timestamp
-        history = history_ref.order_by('used_at', direction=firestore.Query.DESCENDING).stream()
-        
-        # Delete older entries beyond 15
-        count = 0
-        for entry in history:
-            count += 1
-            if count > 15:
-                entry.reference.delete()
+        Args:
+            topic_name (str): Name of the topic to add to history
+        """
+        try:
+            history_ref = cls.get_topic_history_collection()
+            
+            # Get the topic to find its category
+            topic_doc = cls.get_topics_collection().document(topic_name).get()
+            topic_data = topic_doc.to_dict() if topic_doc.exists else {}
+            
+            # Add new entry with timestamp and category
+            history_ref.add({
+                'topic_name': topic_name,
+                'category': topic_data.get('category', 'Uncategorized'),
+                'used_at': firestore.SERVER_TIMESTAMP
+            })
+            
+            # Get all history entries sorted by timestamp
+            history = history_ref.order_by('used_at', direction=firestore.Query.DESCENDING).stream()
+            
+            # Delete older entries beyond 15
+            entries_to_keep = 15
+            entries = list(history)
+            if len(entries) > entries_to_keep:
+                for entry in entries[entries_to_keep:]:
+                    entry.reference.delete()
+                    
+        except Exception as e:
+            print(f"Error adding to history: {str(e)}")
     
     @classmethod
-    def get_recent_topics(cls):
-        """Get list of recently used topics"""
-        history_ref = cls.get_topic_history_collection()
-        history = history_ref.order_by('used_at', direction=firestore.Query.DESCENDING).limit(15).stream()
-        return [doc.get('topic_name') for doc in history]
+    def get_recent_topics(cls, limit=15):
+        """
+        Get list of recently used topics with timestamps
+        
+        Args:
+            limit (int): Maximum number of recent topics to return
+            
+        Returns:
+            List[Dict]: List of dictionaries containing topic info with 'name', 'used_at', and 'id'
+        """
+        try:
+            history_ref = cls.get_topic_history_collection()
+            history_docs = history_ref.order_by('used_at', direction=firestore.Query.DESCENDING).limit(limit).stream()
+            
+            recent_topics = []
+            for doc in history_docs:
+                data = doc.to_dict()
+                recent_topics.append({
+                    'id': doc.id,
+                    'name': data.get('topic_name', ''),
+                    'used_at': data.get('used_at'),
+                    'category': data.get('category', 'Uncategorized')
+                })
+            return recent_topics
+        except Exception as e:
+            print(f"Error getting recent topics: {str(e)}")
+            return []
     
     @classmethod
     def get_all_topics(cls):
@@ -121,22 +158,37 @@ class FirebaseService:
     
     @classmethod
     def get_random_topic(cls):
-        """Get a random topic from Firestore, avoiding recently used ones"""
-        all_topics = cls.get_all_topics()
-        if not all_topics:
-            return None
+        """
+        Get a random topic from Firestore, avoiding recently used ones.
         
-        recent_topics = cls.get_recent_topics()
-        available_topics = [topic for topic in all_topics if topic['name'] not in recent_topics]
-        
-        if not available_topics:
-            # If all topics have been used recently, use the least recently used one
-            selected_topic = all_topics[0]
-        else:
+        Returns:
+            Optional[Dict]: A random topic with its details or None if no topics exist
+        """
+        try:
+            all_topics = cls.get_all_topics()
+            if not all_topics:
+                print("No topics available in the database")
+                return None
+            
+            recent_topics = cls.get_recent_topics()
+            # Filter out recently used topics
+            available_topics = [topic for topic in all_topics if topic['name'] not in recent_topics]
+            
+            # If all topics have been used recently or only one topic exists
+            if not available_topics:
+                print("All topics have been used recently. Selecting from all topics.")
+                available_topics = all_topics
+            
+            # Select a random topic
             selected_topic = random.choice(available_topics)
             
-        cls.add_to_history(selected_topic['name'])
-        return selected_topic
+            # Add to history
+            cls.add_to_history(selected_topic['name'])
+            return selected_topic
+            
+        except Exception as e:
+            print(f"Error in get_random_topic: {str(e)}")
+            return None
     
     @classmethod
     def track_topic_usage(cls, topic_name):

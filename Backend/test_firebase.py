@@ -1,3 +1,4 @@
+import random
 from firebase_service import FirebaseService
 
 def test_firebase_connection():
