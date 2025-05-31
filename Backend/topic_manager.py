@@ -1,13 +1,13 @@
 from firebase_service import FirebaseService
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 import random
 
-def get_all_topics() -> List[str]:
+def get_all_topics() -> List[Dict]:
     """
     Get all available topics from Firebase
     
     Returns:
-        List[str]: A list of all topic names
+        List[Dict]: A list of all topics with their details
     """
     try:
         return FirebaseService.get_all_topics()
@@ -15,18 +15,31 @@ def get_all_topics() -> List[str]:
         print(f"Error fetching topics: {str(e)}")
         return []
 
-def get_random_topic() -> Optional[str]:
+def get_random_topic() -> Optional[Dict]:
     """
-    Get a random topic from Firebase
+    Get a random topic from Firebase, avoiding recently used ones
     
     Returns:
-        Optional[str]: A random topic name or None if no topics exist
+        Optional[Dict]: A random topic with its details or None if no topics exist
     """
     try:
         return FirebaseService.get_random_topic()
     except Exception as e:
         print(f"Error getting random topic: {str(e)}")
         return None
+
+def get_topic_history() -> List[str]:
+    """
+    Get the list of recently used topics
+    
+    Returns:
+        List[str]: List of recently used topic names
+    """
+    try:
+        return FirebaseService.get_recent_topics()
+    except Exception as e:
+        print(f"Error getting topic history: {str(e)}")
+        return []
 
 def add_topic(topic_name: str) -> Tuple[bool, str]:
     """

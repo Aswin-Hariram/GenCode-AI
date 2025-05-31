@@ -160,11 +160,9 @@ def manage_topics():
     try:
         from firebase_service import FirebaseService
         topics = FirebaseService.get_all_topics()
-        # Displaying manage_topics page
         return render_template('manage_topics.html', topics=topics)
     except Exception as e:
         error_details = traceback.format_exc()
-        # Error displaying manage_topics page
         return render_template('error.html', error=str(e)), 500
 
 @app.route('/add_topic', methods=['POST'])
@@ -172,31 +170,63 @@ def add_topic():
     """Add a new topic to Firestore."""
     try:
         from firebase_service import FirebaseService
-        new_topic = request.form.get('new_topic', '').strip()
+        topic_data = {
+            'name': request.form.get('new_topic', '').strip(),
+            'category': request.form.get('category', '').strip()
+        }
         
-        if not new_topic:
+        if not topic_data['name']:
             return render_template('manage_topics.html', 
                                 topics=FirebaseService.get_all_topics(), 
-                                message="Topic cannot be empty", 
+                                message="Topic name cannot be empty", 
                                 success=False)
         
-        # Try to add the topic to Firebase
-        if not FirebaseService.add_topic(new_topic):
+        if FirebaseService.add_topic(topic_data):
             return render_template('manage_topics.html', 
                                 topics=FirebaseService.get_all_topics(), 
-                                message=f"Topic '{new_topic}' already exists", 
+                                message=f"Topic '{topic_data['name']}' added successfully", 
+                                success=True)
+        else:
+            return render_template('manage_topics.html', 
+                                topics=FirebaseService.get_all_topics(), 
+                                message=f"Topic '{topic_data['name']}' already exists", 
                                 success=False)
-        
-        return render_template('manage_topics.html', 
-                            topics=FirebaseService.get_all_topics(), 
-                            message=f"Topic '{new_topic}' added successfully", 
-                            success=True)
-        
+            
     except Exception as e:
         error_details = traceback.format_exc()
         return render_template('manage_topics.html', 
                             topics=FirebaseService.get_all_topics() if 'FirebaseService' in locals() else [], 
                             message=f"Error adding topic: {str(e)}", 
+                            success=False)
+
+@app.route('/edit_topic', methods=['POST'])
+def edit_topic():
+    """Edit an existing topic in Firestore."""
+    try:
+        from firebase_service import FirebaseService
+        old_topic_name = request.form.get('old_topic_name', '').strip()
+        topic_data = {
+            'name': request.form.get('new_topic_name', '').strip(),
+            'category': request.form.get('category', '').strip()
+        }
+        
+        if not topic_data['name']:
+            return render_template('manage_topics.html', 
+                                topics=FirebaseService.get_all_topics(), 
+                                message="Topic name cannot be empty", 
+                                success=False)
+        
+        success, message = FirebaseService.edit_topic(old_topic_name, topic_data)
+        return render_template('manage_topics.html', 
+                            topics=FirebaseService.get_all_topics(), 
+                            message=message, 
+                            success=success)
+            
+    except Exception as e:
+        error_details = traceback.format_exc()
+        return render_template('manage_topics.html', 
+                            topics=FirebaseService.get_all_topics() if 'FirebaseService' in locals() else [], 
+                            message=f"Error editing topic: {str(e)}", 
                             success=False)
 
 @app.route('/remove_topic', methods=['POST'])
@@ -209,21 +239,20 @@ def remove_topic():
         if not topic_to_remove:
             return render_template('manage_topics.html', 
                                 topics=FirebaseService.get_all_topics(), 
-                                message="No topic specified for removal", 
+                                message="Topic name cannot be empty", 
                                 success=False)
         
-        # Try to remove the topic from Firebase
-        if not FirebaseService.remove_topic(topic_to_remove):
+        if FirebaseService.remove_topic(topic_to_remove):
+            return render_template('manage_topics.html', 
+                                topics=FirebaseService.get_all_topics(), 
+                                message=f"Topic '{topic_to_remove}' removed successfully", 
+                                success=True)
+        else:
             return render_template('manage_topics.html', 
                                 topics=FirebaseService.get_all_topics(), 
                                 message=f"Topic '{topic_to_remove}' not found", 
                                 success=False)
-        
-        return render_template('manage_topics.html', 
-                            topics=FirebaseService.get_all_topics(), 
-                            message=f"Topic '{topic_to_remove}' removed successfully", 
-                            success=True)
-        
+            
     except Exception as e:
         error_details = traceback.format_exc()
         return render_template('manage_topics.html', 
