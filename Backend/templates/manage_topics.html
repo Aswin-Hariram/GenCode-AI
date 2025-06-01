@@ -366,8 +366,13 @@
                     {% for topic in topics %}
                     <div class="topic-item" data-topic="{{ topic.name }}">
                         <div class="topic-header">
-                            <span class="topic-title">{{ topic.name }}</span>
-                            <span class="topic-category">{{ topic.category }}</span>
+                            <div>
+                                <span class="topic-title">{{ topic.name }}</span>
+                                <span class="topic-category">{{ topic.category }}</span>
+                                <span class="topic-difficulty" style="margin-left: 10px; padding: 2px 8px; border-radius: 12px; background: #e0f7fa; color: #006064; font-size: 0.8rem;">
+                                    {{ topic.difficulty|capitalize }}
+                                </span>
+                            </div>
                         </div>
                         <div class="topic-actions">
                             <button class="btn btn-edit" onclick="editTopic('{{ topic.name }}')">Edit</button>
@@ -406,6 +411,16 @@
                     </select>
                 </div>
 
+                <div class="form-group">
+                    <label for="difficulty">Difficulty</label>
+                    <select id="difficulty" name="difficulty" class="form-control" required>
+                        <option value="">Select difficulty</option>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+
                 <button type="submit" class="btn btn-submit">Add Topic</button>
             </form>
         </div>
@@ -441,6 +456,8 @@
                     <label for="edit_category">Category</label>
                     <select id="edit_category" name="category" class="form-control" required>
                         <option value="arrays">Arrays</option>
+                        <option value="matrix">Matrix</option>
+                        <option value="string">String</option>
                         <option value="linked-lists">Linked Lists</option>
                         <option value="trees">Trees</option>
                         <option value="graphs">Graphs</option>
@@ -448,6 +465,15 @@
                         <option value="searching">Searching</option>
                         <option value="dynamic-programming">Dynamic Programming</option>
                         <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_difficulty">Difficulty</label>
+                    <select id="edit_difficulty" name="difficulty" class="form-control" required>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
                     </select>
                 </div>
 
@@ -486,10 +512,39 @@
             const modal = document.getElementById('editModal');
             const oldNameInput = document.getElementById('editTopicOldName');
             const nameInput = document.getElementById('edit_topic_name');
+            const difficultySelect = document.getElementById('edit_difficulty');
+            const categorySelect = document.getElementById('edit_category');
             
-            // You'll need to add logic here to populate the current values
+            // Get the topic element and its data
+            const topicElement = document.querySelector(`.topic-item[data-topic="${topicName}"]`);
+            const category = topicElement.querySelector('.topic-category').textContent;
+            const difficultyElement = topicElement.querySelector('.topic-difficulty');
+            let difficulty = 'medium'; // Default value
+            
+            if (difficultyElement) {
+                // Get the text content and convert to lowercase, then trim any whitespace
+                difficulty = difficultyElement.textContent.trim().toLowerCase();
+                // Ensure the difficulty is one of the valid options
+                if (!['easy', 'medium', 'hard'].includes(difficulty)) {
+                    difficulty = 'medium'; // Fallback to medium if invalid
+                }
+            }
+            
+            console.log('Editing topic:', topicName, 'Difficulty:', difficulty); // Debug log
+            
+            // Populate the form fields
             oldNameInput.value = topicName;
             nameInput.value = topicName;
+            categorySelect.value = category ? category.toLowerCase() : '';
+            
+            // Set the difficulty select value
+            const difficultyOption = difficultySelect.querySelector(`option[value="${difficulty}"]`);
+            if (difficultyOption) {
+                difficultyOption.selected = true;
+            } else {
+                // If the difficulty value doesn't match any option, select medium
+                difficultySelect.value = 'medium';
+            }
             
             modal.style.display = 'flex';
         }

@@ -97,11 +97,16 @@ class FirebaseService:
         """Get all topics from Firestore"""
         topics_ref = cls.get_topics_collection()
         docs = topics_ref.stream()
-        return [{
-            'name': doc.id,
-            'category': doc.get('category'),
-            'created_at': doc.get('created_at')
-        } for doc in docs]
+        topics = []
+        for doc in docs:
+            data = doc.to_dict()
+            topics.append({
+                'name': doc.id,
+                'category': data.get('category'),
+                'difficulty': data.get('difficulty', 'medium'),  # Default to medium if not set
+                'created_at': data.get('created_at')
+            })
+        return topics
     
     @classmethod
     def add_topic(cls, topic_data):
@@ -114,6 +119,7 @@ class FirebaseService:
         
         topic_doc.set({
             'category': topic_data['category'],
+            'difficulty': topic_data.get('difficulty', 'medium'),
             'created_at': firestore.SERVER_TIMESTAMP
         })
         return True
@@ -135,12 +141,14 @@ class FirebaseService:
             # Copy data to new document
             new_doc.set({
                 'category': topic_data['category'],
+                'difficulty': topic_data.get('difficulty', 'medium'),
                 'created_at': old_doc.get().get('created_at')
             })
             old_doc.delete()
         else:
             old_doc.update({
-                'category': topic_data['category']
+                'category': topic_data['category'],
+                'difficulty': topic_data.get('difficulty', 'medium')
             })
         return True, "Topic updated successfully"
     

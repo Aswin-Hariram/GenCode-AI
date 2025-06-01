@@ -64,74 +64,134 @@ const CombinedSidebar = () => {
     };
   }, []);
 
+  // Helper function to fetch with retry
+  const fetchWithRetry = async (url, options = {}, retries = 3, backoff = 300) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache',
+          ...options.headers,
+        },
+      });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (retries > 0) {
+        // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, backoff));
+        return fetchWithRetry(url, options, retries - 1, backoff * 2);
+      }
+      throw error;
+    }
+  };
+
   // Fetch recent topics
   useEffect(() => {
     if (!isSidebarOpen || view !== 'recent') return;
 
+    let isMounted = true;
+    
     const fetchRecentTopics = async () => {
-      setIsLoading(prev => ({ ...prev, recent: true }));
+      if (isMounted) {
+        setIsLoading(prev => ({ ...prev, recent: true }));
+      }
       
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/recent-topics`, {
-          cache: 'no-store',
-          signal: AbortSignal.timeout(3000)
-        });
+        const result = await fetchWithRetry(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/recent-topics`,
+          { cache: 'no-store' }
+        );
         
-        if (!response.ok) throw new Error(`API returned status ${response.status}`);
-        
-        const result = await response.json();
-        if (result.success && Array.isArray(result.data)) {
-          setRecentTopics(result.data);
-          setError(prev => ({ ...prev, recent: null }));
-        } else {
-          throw new Error('Invalid response format from server');
+        if (isMounted) {
+          if (result && result.success && Array.isArray(result.data)) {
+            setRecentTopics(result.data);
+            setError(prev => ({ ...prev, recent: null }));
+          } else {
+            throw new Error('Invalid response format from server');
+          }
         }
       } catch (error) {
-        console.error('Failed to fetch recent topics:', error.message);
-        setError(prev => ({ ...prev, recent: 'Failed to load recent topics. Please try again later.' }));
-        setRecentTopics([]);
+        console.error('Failed to fetch recent topics:', error);
+        if (isMounted) {
+          setError(prev => ({
+            ...prev,
+            recent: 'Failed to load recent topics. Please try again later.'
+          }));
+          setRecentTopics([]);
+        }
       } finally {
-        setIsLoading(prev => ({ ...prev, recent: false }));
+        if (isMounted) {
+          setIsLoading(prev => ({ ...prev, recent: false }));
+        }
       }
     };
 
     fetchRecentTopics();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [isSidebarOpen, view]);
 
   // Fetch all topics
   useEffect(() => {
     if (!isSidebarOpen || view !== 'all') return;
+    
+    let isMounted = true;
 
     const fetchAllTopics = async () => {
-      setIsLoading(prev => ({ ...prev, all: true }));
+      if (isMounted) {
+        setIsLoading(prev => ({ ...prev, all: true }));
+      }
       
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/all-topics`, {
-          cache: 'no-store',
-          signal: AbortSignal.timeout(3000)
-        });
+        const result = await fetchWithRetry(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/all-topics`,
+          { cache: 'no-store' }
+        );
         
-        if (!response.ok) throw new Error(`API returned status ${response.status}`);
-        
-        const result = await response.json();
-        if (result.success && Array.isArray(result.data)) {
-          setAllTopics(result.data);
-          setFilteredAllTopics(result.data);
-          setError(prev => ({ ...prev, all: null }));
-        } else {
-          throw new Error('Invalid response format from server');
+        if (isMounted) {
+          if (result && result.success && Array.isArray(result.data)) {
+            setAllTopics(result.data);
+            setFilteredAllTopics(result.data);
+            setError(prev => ({ ...prev, all: null }));
+          } else {
+            throw new Error('Invalid response format from server');
+          }
         }
       } catch (error) {
-        console.error('Failed to fetch all topics:', error.message);
-        setError(prev => ({ ...prev, all: 'Failed to load topics. Please try again later.' }));
-        setAllTopics([]);
-        setFilteredAllTopics([]);
+        console.error('Failed to fetch all topics:', error);
+        if (isMounted) {
+          setError(prev => ({
+            ...prev,
+            all: 'Failed to load topics. Please try again later.'
+          }));
+          setAllTopics([]);
+          setFilteredAllTopics([]);
+        }
       } finally {
-        setIsLoading(prev => ({ ...prev, all: false }));
+        if (isMounted) {
+          setIsLoading(prev => ({ ...prev, all: false }));
+        }
       }
     };
 
     fetchAllTopics();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [isSidebarOpen, view]);
 
   // Set default categories and extract unique categories/difficulties when data loads
@@ -222,6 +282,38 @@ const CombinedSidebar = () => {
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  };
+
+  // Helper function to get difficulty badge styles
+  const getDifficultyStyles = (difficulty) => {
+    const baseStyles = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors duration-200';
+    
+    switch((difficulty || '').toLowerCase()) {
+      case 'easy':
+        return `${baseStyles} ${
+          currentTheme === 'dark'
+            ? 'bg-green-900/30 text-green-300 border-green-800/50'
+            : 'bg-green-50 text-green-700 border-green-100'
+        }`;
+      case 'medium':
+        return `${baseStyles} ${
+          currentTheme === 'dark'
+            ? 'bg-yellow-900/30 text-yellow-300 border-yellow-800/50'
+            : 'bg-yellow-50 text-yellow-700 border-yellow-100'
+        }`;
+      case 'hard':
+        return `${baseStyles} ${
+          currentTheme === 'dark'
+            ? 'bg-red-900/30 text-red-300 border-red-800/50'
+            : 'bg-red-50 text-red-700 border-red-100'
+        }`;
+      default:
+        return `${baseStyles} ${
+          currentTheme === 'dark'
+            ? 'bg-gray-700/30 text-gray-300 border-gray-600/50'
+            : 'bg-gray-50 text-gray-700 border-gray-200'
+        }`;
+    }
   };
 
   const handlePractice = async (topicName) => {
@@ -568,68 +660,85 @@ const CombinedSidebar = () => {
                   key={`${view}-${index}`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ 
-                    delay: index * 0.03, 
-                    type: 'spring', 
+                  transition={{
+                    delay: index * 0.03,
+                    type: 'spring',
                     stiffness: 300,
                     damping: 20
                   }}
-                  className={`group p-5 rounded-xl border transition-all duration-300 hover:-translate-y-0.5 ${
+                  className={`group rounded-lg border transition-all duration-200 ${
                     currentTheme === 'dark'
-                      ? 'bg-gray-800/70 border-gray-700/50 hover:border-blue-900/50 hover:shadow-blue-900/10'
-                      : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-md'
+                      ? 'bg-gray-800 border-gray-700 hover:border-blue-700 hover:shadow-lg hover:shadow-blue-900/10'
+                      : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'
                   }`}
                 >
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1 min-w-0">
-                      <h3 className={`font-semibold text-base transition-colors duration-200 truncate ${
-                        currentTheme === 'dark'
-                          ? 'text-white group-hover:text-blue-400'
-                          : 'text-gray-900 group-hover:text-blue-600'
-                      }`}>
-                        {formatTopicName(topic.name)}
-                      </h3>
-                      <div className="flex items-center mt-2 space-x-2.5">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors duration-200 ${
-                          currentTheme === 'dark'
-                            ? 'bg-blue-900/30 text-blue-300 border-blue-800/50'
-                            : 'bg-blue-50 text-blue-700 border-blue-100'
+                  <div className="p-4">
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            currentTheme === 'dark'
+                              ? 'bg-blue-900/40 text-blue-300'
+                              : 'bg-blue-50 text-blue-700'
+                          }`}>
+                            {topic.category || 'General'}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            currentTheme === 'dark'
+                              ? topic.difficulty?.toLowerCase() === 'hard' ? 'bg-red-900/30 text-red-300' :
+                                topic.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-900/30 text-yellow-300' :
+                                'bg-green-900/30 text-green-300'
+                              : topic.difficulty?.toLowerCase() === 'hard' ? 'bg-red-100 text-red-800' :
+                                topic.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-green-100 text-green-800'
+                          }`}>
+                            {topic.difficulty || 'Easy'}
+                          </span>
+                        </div>
+                        
+                        <h3 className={`text-base font-semibold line-clamp-2 mb-1.5 ${
+                          currentTheme === 'dark' ? 'text-white' : 'text-gray-900'
                         }`}>
-                          {topic.category || 'Uncategorized'}
-                        </span>
+                          {formatTopicName(topic.name)}
+                        </h3>
+                        
                         {view === 'recent' && topic.last_used && (
-                          <span className={`text-xs flex items-center ${
+                          <p className={`text-xs flex items-center ${
                             currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                           }`}>
-                            <FiClock className="mr-1.5 w-3 h-3 flex-shrink-0" />
+                            <FiClock className="mr-1 w-3 h-3 flex-shrink-0" />
                             {topic.last_used}
-                          </span>
+                          </p>
                         )}
                       </div>
-                    </div>
-                    <div className="flex-shrink-0 relative">
-                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
+                      
+                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded text-xs font-medium ${
                         currentTheme === 'dark' 
-                          ? 'bg-blue-900/30 text-blue-400 group-hover:bg-blue-800/50' 
-                          : 'bg-blue-50 text-blue-600 group-hover:text-blue-700 group-hover:bg-blue-100'
-                      } transition-colors`}>
+                          ? 'bg-gray-700 text-gray-300' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
                         {index + 1}
                       </span>
                     </div>
-                  </div>
-                  <div className="mt-4 flex justify-end">
-                    <button
-                      className="inline-flex items-center text-sm px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200 transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handlePractice(topic.name);
-                      }}
-                    >
-                      <span>{view === 'recent' ? 'Practice Again' : 'Try Now'}</span>
-                      <svg className="ml-1.5 w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                      </svg>
-                    </button>
+                    
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <button
+                        className={`w-full flex items-center justify-center px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                          currentTheme === 'dark'
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-800'
+                        }`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePractice(topic.name);
+                        }}
+                      >
+                        {view === 'recent' ? 'Practice' : 'Try Now'}
+                        <svg className="ml-1 -mr-0.5 h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               ))}

@@ -1,15 +1,28 @@
+import logging
+import os
+import sys
+import traceback
+from datetime import datetime
+from dotenv import load_dotenv
+
 from flask import Flask, jsonify, request, render_template, redirect, url_for, flash
 from flask_cors import CORS
+
 from topic_manager import get_random_topic, get_recent_topics, add_topic as add_topic_manager
 from question_generator import generate_dsa_question
 from codeCompiler import compile_code
 from submitCode import submit_code
-import os
-import traceback
-import sys
-from datetime import datetime
-from dotenv import load_dotenv
 from firebase_service import FirebaseService
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file if it exists
 load_dotenv()
@@ -150,8 +163,27 @@ def get_dsa_question():
         # Generate DSA question using the selected topic
         result = generate_dsa_question(topic)
         
-        # Add the topic to the response
-        result['topic'] = topic
+        # Ensure topic is a string and clean it up
+        topic_str = str(topic).strip()
+        result['topic'] = topic_str
+        
+        # Get the topic details including difficulty from Firestore
+        from firebase_service import FirebaseService
+        FirebaseService.initialize()
+        topics = FirebaseService.get_all_topics()
+        
+        # Find the topic details with case-insensitive comparison and handle potential errors
+        topic_details = {}
+        for t in topics:
+            try:
+                if 'name' in t and t['name'] and isinstance(t['name'], str):
+                    if t['name'].lower() == topic_str.lower():
+                        topic_details = t
+                        break
+            except (AttributeError, TypeError):
+                continue
+                
+        result['difficulty'] = topic_details.get('difficulty', 'medium').lower() if isinstance(topic_details, dict) else 'medium'
         
         return jsonify(result)
     except Exception as e:
@@ -168,27 +200,40 @@ def manage_topics():
     """Display the topics management page."""
     try:
         from firebase_service import FirebaseService
+        # Ensure Firebase is initialized
+        FirebaseService.initialize()
         topics = FirebaseService.get_all_topics()
         return render_template('manage_topics.html', topics=topics)
     except Exception as e:
-        error_details = traceback.format_exc()
-        return render_template('error.html', error=str(e)), 500
+        logger.error(f"Error in manage_topics: {str(e)}\n{traceback.format_exc()}")
+        return render_template('manage_topics.html', 
+                            topics=[], 
+                            message=f"Error loading topics: {str(e)}", 
+                            success=False), 500
 
 @app.route('/add_topic', methods=['POST'])
 def add_topic():
     """Add a new topic to Firestore."""
     try:
         from firebase_service import FirebaseService
-        topic_data = {
-            'name': request.form.get('new_topic', '').strip(),
-            'category': request.form.get('category', '').strip()
-        }
+        FirebaseService.initialize()
         
-        if not topic_data['name']:
+        new_topic = request.form.get('new_topic', '').strip()
+        category = request.form.get('category', '').strip()
+        difficulty = request.form.get('difficulty', 'medium').strip()
+        
+        if not new_topic or not category or not difficulty:
             return render_template('manage_topics.html', 
-                                topics=FirebaseService.get_all_topics(), 
-                                message="Topic name cannot be empty", 
+                                topics=FirebaseService.get_all_topics(),
+                                message="Please fill in all required fields", 
                                 success=False)
+        
+        # Prepare topic data
+        topic_data = {
+            'name': new_topic,
+            'category': category,
+            'difficulty': difficulty
+        }
         
         if FirebaseService.add_topic(topic_data):
             return render_template('manage_topics.html', 
@@ -213,17 +258,25 @@ def edit_topic():
     """Edit an existing topic in Firestore."""
     try:
         from firebase_service import FirebaseService
-        old_topic_name = request.form.get('old_topic_name', '').strip()
-        topic_data = {
-            'name': request.form.get('new_topic_name', '').strip(),
-            'category': request.form.get('category', '').strip()
-        }
+        FirebaseService.initialize()
         
-        if not topic_data['name']:
+        old_topic_name = request.form.get('old_topic_name', '').strip()
+        new_topic_name = request.form.get('new_topic_name', '').strip()
+        category = request.form.get('category', '').strip()
+        difficulty = request.form.get('difficulty', 'medium').strip()
+        
+        if not old_topic_name or not new_topic_name or not category or not difficulty:
             return render_template('manage_topics.html', 
                                 topics=FirebaseService.get_all_topics(), 
-                                message="Topic name cannot be empty", 
+                                message="All fields are required", 
                                 success=False)
+        
+        # Prepare topic data with difficulty
+        topic_data = {
+            'name': new_topic_name,
+            'category': category,
+            'difficulty': difficulty
+        }
         
         success, message = FirebaseService.edit_topic(old_topic_name, topic_data)
         return render_template('manage_topics.html', 
@@ -243,27 +296,29 @@ def remove_topic():
     """Remove a topic from Firestore."""
     try:
         from firebase_service import FirebaseService
+        FirebaseService.initialize()
+        
         topic_to_remove = request.form.get('topic', '').strip()
         
         if not topic_to_remove:
             return render_template('manage_topics.html', 
                                 topics=FirebaseService.get_all_topics(), 
-                                message="Topic name cannot be empty", 
+                                message="No topic specified for removal", 
                                 success=False)
         
-        if FirebaseService.remove_topic(topic_to_remove):
-            return render_template('manage_topics.html', 
-                                topics=FirebaseService.get_all_topics(), 
-                                message=f"Topic '{topic_to_remove}' removed successfully", 
-                                success=True)
-        else:
+        if not FirebaseService.remove_topic(topic_to_remove):
             return render_template('manage_topics.html', 
                                 topics=FirebaseService.get_all_topics(), 
                                 message=f"Topic '{topic_to_remove}' not found", 
                                 success=False)
+        
+        return render_template('manage_topics.html', 
+                            topics=FirebaseService.get_all_topics(), 
+                            message=f"Topic '{topic_to_remove}' removed successfully", 
+                            success=True)
             
     except Exception as e:
-        error_details = traceback.format_exc()
+        logger.error(f"Error in remove_topic: {str(e)}\n{traceback.format_exc()}")
         return render_template('manage_topics.html', 
                             topics=FirebaseService.get_all_topics() if 'FirebaseService' in locals() else [], 
                             message=f"Error removing topic: {str(e)}", 
@@ -322,6 +377,7 @@ def api_recent_topics():
                 'id': i,
                 'name': topic.get('name', '').replace(' ', '_').lower(),
                 'category': topic.get('category', 'Uncategorized'),
+                'difficulty': topic.get('difficulty', 'medium'),
                 'last_used': topic.get('last_used', 'Recently')
             })
         
@@ -519,7 +575,7 @@ def api_all_topics():
                             'id': str(i),
                             'name': topic_name.replace(' ', '_').lower().strip('_'),
                             'category': str(topic.get('category', 'Uncategorized')).strip(),
-                            
+                            'difficulty': str(topic.get('difficulty', 'medium')).strip()
                         }
                         formatted_topics.append(formatted_topic)
                         
