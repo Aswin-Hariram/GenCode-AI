@@ -37,7 +37,100 @@ const GenCode = () => {
   const editorRef = useRef(null);
   const consoleHeight = useRef(200);
 
-  const { problemData, isLoading, error: problemError } = useProblemData();
+  const { problemData, isLoading, error: problemError, setProblemData } = useProblemData();
+  const [isLoadingState, setIsLoadingState] = useState(isLoading);
+  const [errorState, setErrorState] = useState(problemError);
+  
+  // Update local state when props change
+  useEffect(() => {
+    setIsLoadingState(isLoading);
+    setErrorState(problemError);
+  }, [isLoading, problemError]);
+  
+  // Function to fetch a new question for a specific topic
+  const fetchQuestionForTopic = async (topic) => {
+    try {
+      setIsLoadingState(true);
+      setErrorState(null);
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/get_dsa_question?topic=${encodeURIComponent(topic)}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch question: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Update the problem data
+      setProblemData(prevData => ({
+        ...prevData,
+        title: data.title || topic,
+        description: data.markdown || '',
+        solution: data.solution || '',
+        testcases: data.testcases || [],
+        difficulty: data.difficulty || 'Medium',
+        time_complexity: data.time_complexity || 'O(n)',
+        space_complexity: data.space_complexity || 'O(1)',
+        initial_code: data.initial_code || ''
+      }));
+      
+      // Reset the code editor with the new initial code if available
+      if (data.initial_code) {
+        setCode(data.initial_code);
+      }
+      
+      // Reset other states
+      setResponse(null);
+      setActiveTab('description');
+      
+    } catch (error) {
+      console.error('Error fetching question:', error);
+      setErrorState(error.message || 'Failed to load question');
+    } finally {
+      setIsLoadingState(false);
+    }
+  };
+
+  // Set up event listeners for custom events
+  useEffect(() => {
+    const handleUpdateProblemData = (event) => {
+      const { detail } = event;
+      setProblemData(prevData => ({
+        ...prevData,
+        ...detail
+      }));
+    };
+    
+    const handleShowLoading = (event) => {
+      setIsLoadingState(event.detail);
+    };
+    
+    const handleShowError = (event) => {
+      setErrorState(event.detail);
+      setIsLoadingState(false);
+    };
+    
+    const handleRegenerateQuestion = async (event) => {
+      const { topic } = event.detail;
+      if (topic) {
+        await fetchQuestionForTopic(topic);
+      }
+    };
+    
+    // Add event listeners
+    window.addEventListener('updateProblemData', handleUpdateProblemData);
+    window.addEventListener('showLoading', handleShowLoading);
+    window.addEventListener('showError', handleShowError);
+    window.addEventListener('regenerateQuestion', handleRegenerateQuestion);
+    
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('updateProblemData', handleUpdateProblemData);
+      window.removeEventListener('showLoading', handleShowLoading);
+      window.removeEventListener('showError', handleShowError);
+      window.removeEventListener('regenerateQuestion', handleRegenerateQuestion);
+    };
+  }, [setProblemData]);
 
   const tabs = [
     { id: 'description', label: 'Description', icon: <FiFileText className="mr-2" size={18} /> },
@@ -239,12 +332,12 @@ const GenCode = () => {
     return 'Run Code';
   };
 
-  if (isLoading) {
+  if (isLoadingState) {
     return <LoadingSpinner theme={theme} />;
   }
 
-  if (problemError) {
-    return <ErrorDisplay error={problemError} />;
+  if (errorState) {
+    return <ErrorDisplay error={errorState} />;
   }
 
   return (

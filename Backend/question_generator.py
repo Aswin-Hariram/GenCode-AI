@@ -137,6 +137,7 @@ def generate_dsa_question(topic: str) -> dict:
         'initial_code': initial_code,
         'markdown': cleaned_markdown,
         'solution': solution_code,
+        'realtopic': topic,
         'time_complexity': time_complexity,
         'space_complexity': space_complexity,
         'testcases': [

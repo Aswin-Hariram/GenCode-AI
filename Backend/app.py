@@ -134,18 +134,24 @@ def compile():
 
 @app.route('/get_dsa_question', methods=['GET'])
 def get_dsa_question():
-    """Generate a random DSA question based on a topic."""
+    """Generate a DSA question based on the provided topic or a random one if not specified."""
     try:
-        # Get a random topic from Firebase
-        topic = get_random_topic()
+        # Get topic from query parameter or get a random one if not provided
+        topic = request.args.get('topic')
         if not topic:
-            # No topics found in Firestore
-            return jsonify({
-                'error': 'No topics available. Please add topics first.'
-            }), 404
-            
+            topic = get_random_topic()
+            if not topic:
+                # No topics found in Firestore
+                return jsonify({
+                    'error': 'No topics available. Please add topics first.'
+                }), 404
+        
         # Generate DSA question using the selected topic
         result = generate_dsa_question(topic)
+        
+        # Add the topic to the response
+        result['topic'] = topic
+        
         return jsonify(result)
     except Exception as e:
         error_details = traceback.format_exc()
@@ -293,12 +299,43 @@ def recent_topics():
 def index():
     """Render the main index page with recent topics"""
     try:
-        # Get recent topics for the dashboard (limit to 5 for the main page)
-        recent_topics = get_recent_topics(limit=5)
-        return render_template('index.html', recent_topics=recent_topics)
+        # Get recent topics from the topic manager
+        recent = get_recent_topics()
+        return render_template('index.html', recent_topics=recent)
     except Exception as e:
-        print(f"Error in index route: {str(e)}")
+        # Log the error and render the page without recent topics
+        print(f"Error in index route: {e}")
         return render_template('index.html', recent_topics=[])
+
+@app.route('/api/recent-topics', methods=['GET'])
+def api_recent_topics():
+    """API endpoint to get recent topics in JSON format"""
+    try:
+        # Get recent topics from the topic manager
+        recent = get_recent_topics()
+        
+        # Format the response
+        topics = []
+        for i, topic in enumerate(recent, 1):
+            topics.append({
+                'id': i,
+                'name': topic.get('name', '').replace(' ', '_').lower(),
+                'category': topic.get('category', 'Uncategorized'),
+                'last_used': topic.get('last_used', 'Recently')
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': topics
+        })
+        
+    except Exception as e:
+        print(f"Error in api_recent_topics: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to fetch recent topics',
+            'details': str(e)
+        }), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))  # Default to 8001 for local dev

@@ -7,6 +7,7 @@ export const useProblemData = () => {
     title: "",
     difficulty: "",
     description: '',
+    realtopic: "",
     testcases: [
       { input: '"babad"', output: '"bab"' },
       { input: '"cbbd"', output: '"bb"' }
@@ -45,7 +46,8 @@ export const useProblemData = () => {
           difficulty: data.difficulty,
           time_complexity: data.time_complexity,
           space_complexity: data.space_complexity,
-          initial_code: data.initial_code
+          initial_code: data.initial_code,
+          realtopic: data.realtopic
         });
         
       } catch (err) {

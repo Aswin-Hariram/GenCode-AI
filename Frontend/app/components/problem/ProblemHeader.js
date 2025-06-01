@@ -1,6 +1,7 @@
 "use client";
 import PropTypes from 'prop-types';
-import { FiShare } from 'react-icons/fi';
+import { FiShare, FiClock, FiRefreshCw } from 'react-icons/fi';
+import { useSidebar } from '../../context/SidebarContext';
 import { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -11,6 +12,25 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 
 const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsData }) => {
+  const { toggleSidebar } = useSidebar();
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  
+  const handleRegenerate = async () => {
+    if (isRegenerating) return;
+    
+    try {
+      setIsRegenerating(true);
+      // Dispatch event to regenerate the same question
+      const event = new CustomEvent('regenerateQuestion', { 
+        detail: { topic: problemData?.realtopic } 
+      });
+      window.dispatchEvent(event);
+    } catch (error) {
+      console.error('Error regenerating question:', error);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
   const getDifficultyClasses = (difficulty) => {
     switch (difficulty) {
       case "Easy":
@@ -301,7 +321,31 @@ const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsDa
         </span>
       </div>
       <div className="flex items-center space-x-3">
+        <button
+          onClick={toggleSidebar}
+          className={`group relative inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out overflow-hidden ${
+            theme === 'dark'
+              ? 'bg-gray-700/80 hover:bg-gray-600/90 text-gray-100 hover:text-white shadow-lg hover:shadow-gray-900/30'
+              : 'bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 shadow-md hover:shadow-lg hover:shadow-gray-200/50 border border-gray-200 hover:border-gray-300'
+          }`}
+          title="View recent topics"
+        >
+          <span className="relative z-10 flex items-center">
+            <FiClock className={`mr-2 w-4 h-4 transition-transform duration-200 group-hover:scale-110 ${
+              theme === 'dark' ? 'text-blue-300' : 'text-blue-500'
+            }`} />
+            <span>Recent</span>
+          </span>
+            {/* Animated background effect on hover */}
+          <span className={`absolute inset-0 w-0 transition-all duration-300 ease-out group-hover:w-full ${
+            theme === 'dark' 
+              ? 'bg-gradient-to-r from-blue-600/20 to-blue-400/20' 
+              : 'bg-gradient-to-r from-blue-50 to-blue-100/50'
+          }`}></span>
+        </button>
         
+        {/* Regenerate Button */}
+      
         <button 
           onClick={generatePDF}
           className={`${
