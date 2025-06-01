@@ -6,6 +6,7 @@ from codeCompiler import compile_code
 from submitCode import submit_code
 import os
 import traceback
+import sys
 from datetime import datetime
 from dotenv import load_dotenv
 from firebase_service import FirebaseService
@@ -337,6 +338,255 @@ def api_recent_topics():
             'details': str(e)
         }), 500
 
+
+def log_error(message, print_to_console=True):
+    """Helper function to log errors to a file and optionally to console"""
+    try:
+        log_dir = os.path.join(os.path.dirname(__file__), 'logs')
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, 'api_errors.log')
+        
+        log_entry = f"[{datetime.now().isoformat()}] {message}\n"
+        
+        # Write to file
+        with open(log_file, 'a') as f:
+            f.write(log_entry)
+            traceback.print_exc(file=f)
+            f.write("\n" + "="*80 + "\n\n")
+            
+        # Print to console if requested
+        if print_to_console:
+            print(log_entry, flush=True)
+            traceback.print_exc()
+            print("\n" + "="*80 + "\n", flush=True)
+            
+    except Exception as e:
+        print(f"Error in log_error: {str(e)}", flush=True)
+        traceback.print_exc()
+
+@app.route('/api/all-topics', methods=['GET'])
+def api_all_topics():
+    """
+    API endpoint to get all topics in JSON format
+    
+    Returns:
+        JSON response with list of topics or error message
+        {
+            'success': bool,
+            'data': [
+                {
+                    'id': str,
+                    'name': str,
+                    'category': str,
+                    'last_used': str
+                }
+            ]
+        }
+    """
+    print("\n" + "="*80, flush=True)
+    print("STARTING /api/all-topics ENDPOINT", flush=True)
+    
+    try:
+        print(f"\n[DEBUG] Python path: {sys.path}", flush=True)
+        print(f"[DEBUG] Current working directory: {os.getcwd()}", flush=True)
+        
+        # Import required Firebase modules
+        try:
+            import firebase_admin
+            from firebase_admin import credentials, firestore
+            
+            # Initialize Firebase Admin SDK if not already initialized
+            if not firebase_admin._apps:
+                # Use the service account key from the current directory
+                service_account_path = os.path.join(os.path.dirname(__file__), 'serviceAccountKey.json')
+                print(f"[DEBUG] Using service account key from: {service_account_path}", flush=True)
+                
+                if not os.path.exists(service_account_path):
+                    error_msg = f"Service account key not found at: {service_account_path}"
+                    print(f"[ERROR] {error_msg}", flush=True)
+                    return jsonify({
+                        'success': False,
+                        'error': 'Service account key not found',
+                        'details': error_msg
+                    }), 500
+                
+                try:
+                    cred = credentials.Certificate(service_account_path)
+                    firebase_admin.initialize_app(cred)
+                    print("[DEBUG] Firebase Admin SDK initialized successfully", flush=True)
+                except Exception as e:
+                    error_msg = f"Failed to initialize Firebase Admin SDK: {str(e)}"
+                    print(f"[ERROR] {error_msg}", flush=True)
+                    traceback.print_exc()
+                    return jsonify({
+                        'success': False,
+                        'error': 'Failed to initialize Firebase',
+                        'details': str(e),
+                        'type': type(e).__name__
+                    }), 500
+            
+            # Get Firestore client
+            try:
+                db = firestore.client()
+                print("[DEBUG] Firestore client created successfully", flush=True)
+            except Exception as e:
+                error_msg = f"Failed to create Firestore client: {str(e)}"
+                print(f"[ERROR] {error_msg}", flush=True)
+                traceback.print_exc()
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to connect to Firestore',
+                    'details': str(e),
+                    'type': type(e).__name__
+                }), 500
+            
+            # List all collections to check available collections
+            try:
+                print("[DEBUG] Listing all collections in Firestore...", flush=True)
+                collections = list(db.collections())  # Convert to list to avoid timeout
+                collection_names = [collection.id for collection in collections]
+                print(f"[DEBUG] Available collections: {collection_names}", flush=True)
+            except Exception as e:
+                error_msg = f"Failed to list collections: {str(e)}"
+                print(f"[ERROR] {error_msg}", flush=True)
+                traceback.print_exc()
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to list Firestore collections',
+                    'details': str(e),
+                    'type': type(e).__name__
+                }), 500
+            
+            # Check if 'dsa_topics' collection exists
+            collection_name = 'dsa_topics'
+            if collection_name not in collection_names:
+                print(f"[WARNING] Collection '{collection_name}' not found in Firestore", flush=True)
+                return jsonify({
+                    'success': False,
+                    'error': f'Collection {collection_name} not found',
+                    'available_collections': collection_names,
+                    'data': []
+                }), 404
+            
+            # Get all topics from the collection
+            try:
+                print(f"[DEBUG] Fetching topics from '{collection_name}' collection...", flush=True)
+                topics_ref = db.collection(collection_name)
+                docs = list(topics_ref.limit(100).stream())  # Limit to 100 documents to avoid timeout
+                
+                print(f"[DEBUG] Found {len(docs)} documents in '{collection_name}' collection", flush=True)
+                
+                # Convert Firestore documents to a list of dictionaries
+                topics = []
+                for doc in docs:
+                    try:
+                        topic_data = doc.to_dict()
+                        topic_data['id'] = doc.id
+                        # Use document ID as the topic name if 'name' field doesn't exist
+                        if 'name' not in topic_data or not topic_data['name']:
+                            topic_data['name'] = doc.id
+                        topics.append(topic_data)
+                    except Exception as e:
+                        print(f"[ERROR] Error processing document {doc.id}: {str(e)}", flush=True)
+                        continue
+                
+                print(f"[DEBUG] Retrieved {len(topics)} topics from Firestore", flush=True)
+                
+                if not topics:
+                    print("[WARNING] No topics found in Firestore", flush=True)
+                    return jsonify({
+                        'success': False,
+                        'error': 'No topics found',
+                        'data': []
+                    }), 404
+                
+                # Format the response
+                print("\n[DEBUG] Formatting topics...", flush=True)
+                formatted_topics = []
+                for i, topic in enumerate(topics, 1):
+                    try:
+                        # Ensure we have a valid topic name
+                        if not topic or not isinstance(topic, dict):
+                            print(f"[WARNING] Skipping invalid topic: {topic}", flush=True)
+                            continue
+                            
+                        topic_name = str(topic.get('name', '')).strip()
+                        if not topic_name:
+                            print(f"[WARNING] Skipping topic {i} - empty name", flush=True)
+                            continue
+                            
+                        formatted_topic = {
+                            'id': str(i),
+                            'name': topic_name.replace(' ', '_').lower().strip('_'),
+                            'category': str(topic.get('category', 'Uncategorized')).strip(),
+                            
+                        }
+                        formatted_topics.append(formatted_topic)
+                        
+                    except Exception as e:
+                        print(f"[ERROR] Error formatting topic {i}: {str(e)}", flush=True)
+                        print(f"[DEBUG] Topic data: {topic}", flush=True)
+                        continue
+                
+                print(f"[SUCCESS] Successfully formatted {len(formatted_topics)} topics", flush=True)
+                print("="*80 + "\n", flush=True)
+                
+                return jsonify({
+                    'success': True,
+                    'data': formatted_topics
+                })
+                
+            except Exception as e:
+                error_msg = f"Error fetching topics from Firestore: {str(e)}"
+                print(f"[ERROR] {error_msg}", flush=True)
+                traceback.print_exc()
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to fetch topics from Firestore',
+                    'details': str(e),
+                    'type': type(e).__name__
+                }), 500
+            
+        except ImportError as e:
+            error_msg = f"Failed to import Firebase modules: {str(e)}"
+            print(f"[ERROR] {error_msg}", flush=True)
+            traceback.print_exc()
+            return jsonify({
+                'success': False,
+                'error': 'Failed to import required Firebase modules',
+                'details': str(e),
+                'type': 'ImportError'
+            }), 500
+            
+    except Exception as e:
+        error_msg = f"Unexpected error in api_all_topics: {str(e)}"
+        print(f"\n[CRITICAL] {error_msg}", flush=True)
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': 'An unexpected error occurred',
+            'details': str(e),
+            'type': type(e).__name__,
+            'traceback': traceback.format_exc()
+        }), 500
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  # Default to 8001 for local dev
-    app.run(host="0.0.0.0", port=port)
+    # Enable debug mode and detailed error messages
+    app.debug = True
+    app.config['DEBUG'] = True
+    app.config['PROPAGATE_EXCEPTIONS'] = True
+    
+    # Set up logging
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger(__name__)
+    
+    # Log all requests
+    @app.before_request
+    def log_request_info():
+        logger.debug('Headers: %s', request.headers)
+        logger.debug('Body: %s', request.get_data())
+    
+    port = int(os.environ.get("PORT", 8000))  # Default to 8000 for local dev
+    logger.info(f"Starting server on port {port} with debug={app.debug}")
+    app.run(host="0.0.0.0", port=port, debug=True, use_reloader=True)

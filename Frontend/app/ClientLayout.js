@@ -2,7 +2,7 @@
 
 import { Inter } from 'next/font/google';
 import { SidebarProvider } from './context/SidebarContext';
-import RecentTopicsSidebar from './components/sidebar/RecentTopicsSidebar';
+import CombinedSidebar from './components/sidebar/CombinedSidebar';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,7 +24,7 @@ export default function ClientLayout({ children }) {
       <body className="antialiased">
         <SidebarProvider>
           {children}
-          <RecentTopicsSidebar />
+          <CombinedSidebar />
         </SidebarProvider>
       </body>
     </html>
