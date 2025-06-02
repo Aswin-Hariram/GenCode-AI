@@ -3,6 +3,7 @@ import os
 import sys
 import traceback
 from datetime import datetime
+from changeLanguage import LangChange
 from dotenv import load_dotenv
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, flash
@@ -145,6 +146,36 @@ def compile():
             'result': 'Failure',
             'message': f'Error while compiling: {str(e)}'
         }), 500
+
+
+@app.route('/changeLanguage', methods=['POST'])
+def changeLanguage():
+    """Convert the initial code from one language to another language"""
+    if not request.is_json:
+    # Invalid request format
+        return jsonify({
+            'result': 'Failure',
+            'message': 'Invalid request format. JSON required.'
+        }), 400
+        # Retrieve code from the request body
+    try:
+        fromLang = request.json.get('fromLang')
+        toLang = request.json.get('toLang')
+        code = request.json.get('code')
+
+        result = LangChange(code, fromLang, toLang)
+
+        return jsonify(result)
+    except Exception as e:
+        error_details = traceback.format_exc()
+        # Error in code submission
+        return jsonify({
+            'result': 'Failure',
+            'message': f'Error while processing submission: {str(e)}'
+        }), 500
+    
+    
+        
 
 @app.route('/get_dsa_question', methods=['GET'])
 def get_dsa_question():

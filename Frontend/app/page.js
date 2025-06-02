@@ -47,11 +47,20 @@ const GenCode = () => {
     setErrorState(problemError);
   }, [isLoading, problemError]);
   
+  // Constants
+  const EDITOR_LANG_KEY = 'editor-lang';
+  const DEFAULT_LANGUAGE = 'cpp';
+
   // Function to fetch a new question for a specific topic
   const fetchQuestionForTopic = async (topic) => {
     try {
       setIsLoadingState(true);
       setErrorState(null);
+      
+      // Set default language if not already set
+      if (!localStorage.getItem(EDITOR_LANG_KEY)) {
+        localStorage.setItem(EDITOR_LANG_KEY, DEFAULT_LANGUAGE);
+      }
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/get_dsa_question?topic=${encodeURIComponent(topic)}`);
       
@@ -74,8 +83,10 @@ const GenCode = () => {
         initial_code: data.initial_code || ''
       }));
       
+      
       // Reset the code editor with the new initial code if available
       if (data.initial_code) {
+        localStorage.setItem("editor-lang", 'cpp');
         setCode(data.initial_code);
       }
       
@@ -153,7 +164,7 @@ const GenCode = () => {
   
   const handleSubmitCode = async (submissionData) => {
     setIsSubmitting(true);
-    setError(null); // Reset any previous errors
+    setError(null);
     
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${process.env.NEXT_PUBLIC_SUBMIT_ENDPOINT}`, {
@@ -163,9 +174,9 @@ const GenCode = () => {
         },
         body: JSON.stringify({
           ...submissionData,
-          code: code, // Include current code
+          code: code,
           language: language.toLowerCase(),
-          problem_id: problemData.id
+          problem_id: problemData?.id || 'unknown'
         }),
       });
   
@@ -174,56 +185,36 @@ const GenCode = () => {
       }
   
       const result = await response.json();
-      console.log(result);
-      // Save submission to localStorage
-      const saveSubmission = () => {
-        try {
-          // Create a new submission entry
-          const newSubmission = {
-            id: Date.now().toString(),
-            status: result.status,
-            language: language,
-            runtime: result.runtime || 'N/A',
-            memory: result.memory_used || 'N/A',
-            timestamp: new Date().toISOString()
-          };
-         
-          // Get existing submissions from localStorage
-          const allSubmissions = JSON.parse(localStorage.getItem('submissions')) || {};
-          
-          // Add the new submission to the problem's submissions array
-          const problemId = problemData.id || 'unknown';
-          if (!allSubmissions[problemId]) {
-            allSubmissions[problemId] = [];
-          }
-          allSubmissions[problemId].unshift(newSubmission);
-          
-          // Save back to localStorage
-          localStorage.setItem('submissions', JSON.stringify(allSubmissions));
-          
-        } catch (error) {
-          console.error('Error saving submission:', error);
-        }
-      };
       
-      // Save the submission
-      saveSubmission();
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      // Record the submission in local storage
+      // Create submission entry
       const newSubmission = {
         id: `sub_${Date.now()}`,
         status: result.status || (result.markdown_report?.includes('Accepted') ? 'Accepted' : 'Failed'),
         language: language,
         runtime: result.runtime || 'N/A',
-        memory: result.memory || 'N/A',
+        memory: result.memory_used || 'N/A',
         timestamp: new Date().toISOString(),
         code: code,
-        problem_id: problemData.id,
-        problem_title: problemData.title
+        problem_id: problemData?.id || 'unknown',
+        problem_title: problemData?.title || 'Unknown Problem'
       };
+      
+      // Save submission to localStorage
+      try {
+        const allSubmissions = JSON.parse(localStorage.getItem('submissions')) || {};
+        const problemId = problemData?.id || 'unknown';
+        if (!allSubmissions[problemId]) {
+          allSubmissions[problemId] = [];
+        }
+        allSubmissions[problemId].unshift(newSubmission);
+        localStorage.setItem('submissions', JSON.stringify(allSubmissions));
+      } catch (error) {
+        console.error('Error saving submission:', error);
+      }
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
       
       setResponse(result.markdown_report);
       setActiveTab('results');
@@ -231,22 +222,7 @@ const GenCode = () => {
       console.error('Error submitting solution:', error);
       setError(error.message || 'Failed to submit solution. Please try again.');
       setResponse(`### Error Submitting Solution\n\n${error.message || 'An unexpected error occurred. Please try again.'}`);
-      setActiveTab('results'); // Show error in results tab
-      
-      // Record failed submission
-      const failedSubmission = {
-        id: `sub_${Date.now()}`,
-        status: 'Error',
-        language: language,
-        runtime: 'N/A',
-        memory: 'N/A',
-        timestamp: new Date().toISOString(),
-        code: code,
-        problem_id: problemData.id,
-        problem_title: problemData.title,
-        error: error.message
-      };
-      
+      setActiveTab('results');
     } finally {
       setIsSubmitting(false);
     }

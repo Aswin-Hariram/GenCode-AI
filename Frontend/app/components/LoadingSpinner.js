@@ -1,4 +1,10 @@
+import { useEffect } from 'react';
+
 export default function LoadingSpinner({ theme = 'light' }) {
+  useEffect(() => {
+    localStorage.removeItem("editor-lang");
+  }, []);
+
   return (
     <div className={`flex flex-col items-center justify-center h-screen ${theme === 'dark' ? 'bg-gray-900 text-gray-200' : 'bg-gray-100 text-gray-800'} transition-colors duration-300`}>
       <div className="relative">
