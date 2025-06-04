@@ -20,97 +20,28 @@ def compile_code(code: str, lang: str) -> dict:
     language_prompt = LANGUAGE_PROMPTS.get(lang, "You are an accurate code compiler/interpreter.")
     
     # Create language-specific prompts
-    if lang == "cpp":
-        prompt = f"""
-{language_prompt}
-
-You will be given C++ code to compile and execute. Act exactly like a real C++ compiler (g++) would:
-[IMPORTANT]:NEVER modify the original code
-1. Check for syntax errors, type errors, undefined variables/functions, and other compilation issues
-2. If compilation fails, provide the exact error message with line numbers in the standard g++ format
-3. If compilation succeeds but there are runtime errors (segmentation faults, etc.), report those
-4. If the code executes successfully, show ONLY the exact output the program would produce
-5. NEVER provide explanations, suggestions, or corrections unless specifically asked
-6. Always show the correct output
-
+    prompt = f"""
+        {language_prompt}
+You will be given {lang} code to compile and execute. Act Strictly like a real {lang} compiler/interpreter would:
+[IMPORTANT]:NEVER modify the original code [BE STRICT]
+1. STRICTLY validate all syntax, types, and language rules as per the {lang} standard
+2. For compilation errors, provide the exact g++ error message with line numbers and specific error codes
+3. For runtime errors, include memory addresses (if applicable) and exact error conditions
+4. Verify all standard library includes and namespace usages
+5. Check for undefined behavior, buffer overflows, and memory leaks
+6. Enforce strict type checking and conversion rules
+7. NEVER modify the original code - treat it as read-only,
+8. Be Carefull over index, array bounds, memory leaks, undefined behavior, buffer overflows, and memory leaks
 Code to compile and execute:
-```cpp
+9. Be carful over return statements as well[Be strict]
+10. I need 100% accuracy and precision in code compilation and execution and output [BE STRICT]
+```{lang}
 {code}
 ```
 
 Respond in this exact format:
 [Result]: Compilation Success or Failure or Runtime Error
 [Message]: The exact compiler output or runtime output/error (no explanations)
-[CorrectedCode]: N/A
-"""
-    elif lang == "python":
-        prompt = f"""
-{language_prompt}
-
-You will be given Python code to interpret and execute. Act exactly like the Python interpreter would:
-
-1. Check for syntax errors, indentation errors, and other parsing issues
-2. If parsing fails, provide the exact error message with line numbers in standard Python format
-3. If parsing succeeds but there are runtime errors (NameError, TypeError, etc.), report those with tracebacks
-4. If the code executes successfully, show ONLY the exact output the program would produce
-5. NEVER provide explanations, suggestions, or corrections unless specifically asked
-6. NEVER modify the original code
-
-Code to interpret and execute:
-```python
-{code}
-```
-
-Respond in this exact format:
-[Result]: Success or SyntaxError or RuntimeError
-[Message]: The exact interpreter output or runtime output/error (no explanations)
-[CorrectedCode]: N/A
-"""
-    elif lang == "java":
-        prompt = f"""
-{language_prompt}
-
-You will be given Java code to compile and execute. Act exactly like a real Java compiler (javac) and JVM would:
-
-1. Check for syntax errors, type errors, undefined variables/methods, and other compilation issues
-2. If compilation fails, provide the exact error message with line numbers in standard javac format
-3. If compilation succeeds but there are runtime errors (NullPointerException, etc.), report those with stack traces
-4. If the code executes successfully, show ONLY the exact output the program would produce
-5. NEVER provide explanations, suggestions, or corrections unless specifically asked
-6. NEVER modify the original code
-
-Code to compile and execute:
-```java
-{code}
-```
-
-Respond in this exact format:
-[Result]: Compilation Success or Failure or Runtime Error or Correct Output of the given code.
-[Message]: The exact compiler output or runtime output/error (explanations without revealing correct answer)
-[CorrectedCode]: if no error then N/A else help to fix the error
-"""
-    else:
-        # Generic prompt for other languages
-        prompt = f"""
-{language_prompt}
-
-You will be given {lang} code to compile and execute. Act exactly like a real {lang} compiler/interpreter would:
-
-1. Check for syntax errors, type errors, undefined variables/functions, and other compilation issues
-2. If compilation/interpretation fails, provide the exact error message with line numbers
-3. If compilation succeeds but there are runtime errors, report those
-4. If the code executes successfully, show ONLY the exact output the program would produce
-5. NEVER provide explanations, suggestions, or corrections unless specifically asked
-6. NEVER modify the original code
-
-Code to compile and execute:
-```{lang}
-{code}
-```
-
-Respond in this exact format:
-[Result]: Success or Failure or Runtime Error
-[Message]: The exact compiler/interpreter output or runtime output/error (no explanations)
 [CorrectedCode]: N/A
 """
 
