@@ -35,6 +35,8 @@ You will be given {lang} code to compile and execute. Act Strictly like a real {
 Code to compile and execute:
 9. Be carful over return statements as well[Be strict]
 10. I need 100% accuracy and precision in code compilation and execution and output [BE STRICT]
+
+Finally really execute the code along with main function and provide the 100% accurate output of the code.
 ```{lang}
 {code}
 ```
