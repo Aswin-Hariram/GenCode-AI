@@ -95,7 +95,7 @@ def submit():
 
         # Pass the code to submit_code function
         # Processing code submission
-        result = submit_code(typedSolution, description, typedSolution, typedLanguage)
+        result = submit_code(actualSolution, description, typedSolution, typedLanguage)
 
         # Check the result and respond accordingly
         return jsonify(result)

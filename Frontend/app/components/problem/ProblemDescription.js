@@ -5,7 +5,7 @@ import DescriptionTab from './tabs/DescriptionTab';
 import ResultsTab from './tabs/ResultsTab';
 import SolutionTab from './tabs/SolutionTab';
 
-const ProblemDescription = ({ problemData, activeTab, response, theme }) => {
+const ProblemDescription = ({ problemData, activeTab, response, status, theme }) => {
   const [copied, setCopied] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [selectedText, setSelectedText] = useState('');
@@ -74,7 +74,7 @@ const ProblemDescription = ({ problemData, activeTab, response, theme }) => {
       case "description":
         return <DescriptionTab problemData={problemData} theme={theme} />;
       case "results":
-        return <ResultsTab response={response} theme={theme} />;
+        return <ResultsTab response={response} status={status} theme={theme} />;
       case "solution":
         return <SolutionTab problemData={problemData} theme={theme}/>;
       default:

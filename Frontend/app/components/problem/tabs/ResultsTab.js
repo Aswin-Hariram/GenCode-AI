@@ -5,10 +5,10 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import { getMarkdownComponents } from "../markdown/MarkdownComponents";
 
-const ResultsTab = ({ response, theme = 'light' }) => {
-  const isError = response?.includes('#NO ACTUAL LOGIC FOUND') || response?.includes('Code Score: 0');
+const ResultsTab = ({ response, status, theme = 'light' }) => {
+  const isError = response?.includes('#NO ACTUAL LOGIC FOUND') ||status.includes('Not Accepted')||status.includes('Partially Accepted');
   const markdownComponents = getMarkdownComponents(theme);
-
+  console.log(response);
   return (
     <div className="animate-fadeIn space-y-6 p-6">
       {!response ? (

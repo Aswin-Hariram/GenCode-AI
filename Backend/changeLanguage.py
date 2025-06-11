@@ -14,13 +14,13 @@ def LangChange(code, fromLang, toLang):
     4. You have NO rights to complete the pending program or TODO mentioned
     5. Incase of from language is same to to language, return the same code
     6. Incase of python to cpp enusure the converted code is a valid cpp code
+    7. Incase of any language to java ensure the converted code is a valid java code and indent the java code and the java code should have proper "public class Main" and "public static void main(String[] args)" 
     Code to convert:
    [code]: {code}
     Convert the above code from {fromLang} to {toLang} 
    Respond in this exact format:
    [Result]: Success or Failure
    [code]: The converted code
-   [language]: The language of the converted code
     
     """
 

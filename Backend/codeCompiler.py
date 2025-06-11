@@ -1,6 +1,16 @@
 import subprocess
 import tempfile
 import os
+import shutil
+import re
+
+def extract_java_class_name(code: str) -> str:
+    """Extracts the public class name from Java source code."""
+    match = re.search(r'public\s+class\s+(\w+)', code)
+    if match:
+        return match.group(1)
+    else:
+        raise ValueError("No public class found in Java code")
 
 def compile_code(code: str, lang: str) -> dict:
     try:
@@ -9,7 +19,7 @@ def compile_code(code: str, lang: str) -> dict:
                 temp.write(code.encode())
                 temp.flush()
                 result = subprocess.run(['python3', temp.name], capture_output=True, text=True, timeout=5)
-        
+
         elif lang == 'c':
             with tempfile.NamedTemporaryFile(suffix=".c", delete=False) as source:
                 source.write(code.encode())
@@ -29,6 +39,26 @@ def compile_code(code: str, lang: str) -> dict:
                 if compile_proc.returncode != 0:
                     return {'result': 'Compilation Error', 'message': compile_proc.stderr}
                 result = subprocess.run([exe_file], capture_output=True, text=True, timeout=5)
+
+        elif lang == 'java':
+            temp_dir = tempfile.mkdtemp()
+            try:
+                class_name = extract_java_class_name(code)
+                java_file = os.path.join(temp_dir, f"{class_name}.java")
+                with open(java_file, "w") as f:
+                    f.write(code)
+                compile_proc = subprocess.run(['javac', java_file], capture_output=True, text=True)
+                if compile_proc.returncode != 0:
+                    return {'result': 'Compilation Error', 'message': compile_proc.stderr}
+                result = subprocess.run(['java', '-cp', temp_dir, class_name], capture_output=True, text=True, timeout=5)
+            finally:
+                shutil.rmtree(temp_dir)
+
+        elif lang == 'javascript':
+            with tempfile.NamedTemporaryFile(suffix=".js", delete=False) as temp:
+                temp.write(code.encode())
+                temp.flush()
+                result = subprocess.run(['node', temp.name], capture_output=True, text=True, timeout=5)
 
         else:
             return {'result': 'Compilation Error', 'message': f'Unsupported language: {lang}'}

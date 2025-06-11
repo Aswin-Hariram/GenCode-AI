@@ -29,6 +29,7 @@ const GenCode = () => {
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [response, setResponse] = useState(null);
+  const [status_data, setStatusData] = useState(null);
   const [error, setError] = useState(null);
   const [activeTestCase, setActiveTestCase] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -82,8 +83,7 @@ const GenCode = () => {
         space_complexity: data.space_complexity || 'O(1)',
         initial_code: data.initial_code || ''
       }));
-      
-      
+      <DescriptionTab problemData={problemData} theme={theme} />
       // Reset the code editor with the new initial code if available
       if (data.initial_code) {
         localStorage.setItem("editor-lang", 'cpp');
@@ -91,7 +91,6 @@ const GenCode = () => {
       }
       
       // Reset other states
-      setResponse(null);
       setActiveTab('description');
       
     } catch (error) {
@@ -217,6 +216,7 @@ const GenCode = () => {
       }
       
       setResponse(result.markdown_report);
+      setStatusData(result.status);
       setActiveTab('results');
     } catch (error) {
       console.error('Error submitting solution:', error);
@@ -371,6 +371,7 @@ const GenCode = () => {
             problemData={problemData} 
             activeTab={activeTab} 
             response={response}
+            status={status_data}
             theme={theme} 
           
           />

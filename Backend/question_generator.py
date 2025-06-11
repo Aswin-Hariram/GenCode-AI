@@ -56,31 +56,34 @@ def generate_dsa_question(topic: str) -> dict:
     - **Explanation:** Provide a detailed analysis of the space complexity of the solution.
     - **Big O Notation:** O(...)
 
-    ## Solution
-    ```cpp
-    // - CPP code
-    // 🏆 Optimal Solution Strategy
-    // - Implement a clean, efficient, and production-ready solution
-    // - Focus on readability, performance, and best practices
-    // - Include comprehensive error handling and input validation
-    // - Provide clear, concise comments explaining the algorithm
-    // - Demonstrate advanced C++ techniques and modern language features
-    ```
 
     ## InitialCode
     ```cpp
-    // 🧩 Initial Problem-Solving Template
-    // Objectives:
-    // - Create a structured skeleton for the solution
-    // - Include function signatures with clear parameter and return types
-    // - Add placeholder comments for key algorithmic steps
-    // - Implement a basic main() function with sample test cases
-    // - Ensure code is compilable and serves as a starting point
-    // - give main function with proper test case exactly like solution
-    // - Dont give any hints for solving the problem
+     🧩 Initial Problem-Solving Template
+    Objectives:
+    - Create a structured skeleton for the solution
+    - Implement a basic main() function with sample test cases
+    - Include function signatures with clear parameter and return types
+    - Ensure code is compilable and serves as a starting point
+    - give main function with proper test case exactly like solution
+    - Dont give any hints for solving the problem [MUST]
 
     Note: Only code, dont add objectives.
     ```
+
+    ## Solution
+    ```cpp
+    - CPP code
+    🏆 Optimal Solution Strategy
+    - Implement a clean, efficient, and production-ready solution 
+    - Implement a main function with sample test cases
+    - Focus on readability, performance, and best practices
+    - Include comprehensive error handling and input validation
+    - Provide clear, concise comments explaining the algorithm
+    - Demonstrate advanced C++ techniques and modern language features
+    ```
+
+
     
      
     [Note] Ensure that all sections are properly aligned and must add proper spacing between text and lines with '\n' with Markdown formatting.
@@ -130,6 +133,39 @@ def generate_dsa_question(topic: str) -> dict:
     # Remove any remaining code blocks
     cleaned_markdown = re.sub(r'```cpp.*?```', '', cleaned_markdown, flags=re.DOTALL).strip()
 
+    # Extract test cases
+    testcases = []
+    test_case_pattern = r'### Test Case \d+\s*- \*\*Input:\*\*\s*([^\n]+)\s*- \*\*Expected Output:\*\*\s*([^\n]+)'
+    test_case_matches = re.finditer(test_case_pattern, markdown, re.MULTILINE | re.DOTALL)
+    
+    for i, match in enumerate(test_case_matches, 1):
+        test_input = match.group(1).strip()
+        expected_output = match.group(2).strip()
+        testcases.append({
+            'input': test_input,
+            'expected_output': expected_output
+        })
+    
+    # Extract hidden test cases
+    hidden_testcases = []
+    hidden_testcases_section = re.search(r'## 15 to 20 Hidden Test Cases for Efficient Evaluation\n```(.*?)```', markdown, re.DOTALL)
+    if hidden_testcases_section:
+        hidden_testcases_text = hidden_testcases_section.group(1).strip()
+        hidden_testcase_matches = re.finditer(r'### Test Case \d+\s*Input:\s*([^\n]+)\s*Expected Output:\s*([^\n]+)', 
+                                            hidden_testcases_text, re.MULTILINE | re.DOTALL)
+        for match in hidden_testcase_matches:
+            test_input = match.group(1).strip()
+            expected_output = match.group(2).strip()
+            hidden_testcases.append({
+                'input': test_input,
+                'expected_output': expected_output
+            })
+    
+    # Remove test cases and hidden test cases sections from markdown
+    cleaned_markdown = re.sub(r'## Test Cases.*?(?=## \w|$)', '', cleaned_markdown, flags=re.DOTALL).strip()
+    cleaned_markdown = re.sub(r'## 15 to 20 Hidden Test Cases for Efficient Evaluation\n```.*?```', '', 
+                            cleaned_markdown, flags=re.DOTALL).strip()
+
     return {
         'title': title,
         'difficulty': difficulty,
@@ -140,8 +176,6 @@ def generate_dsa_question(topic: str) -> dict:
         'realtopic': topic,
         'time_complexity': time_complexity,
         'space_complexity': space_complexity,
-        'testcases': [
-            {'input': '"babad"', 'output': '"bab"'},
-            {'input': '"cbbd"', 'output': '"bb"'}
-        ]
+        'testcases': testcases,
+        'hidden_testcases': hidden_testcases
     }
