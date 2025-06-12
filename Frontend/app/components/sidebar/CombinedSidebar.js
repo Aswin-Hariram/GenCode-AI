@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { FiBook, FiClock, FiRotateCw, FiX, FiAlertCircle, FiSearch } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useSidebar } from '../../context/SidebarContext';
@@ -142,7 +142,7 @@ const CombinedSidebar = () => {
     return () => {
       isMounted = false;
     };
-  }, [isSidebarOpen, view]);
+  }, [isSidebarOpen, view, fetchWithRetry]);
 
   // Fetch all topics
   useEffect(() => {
@@ -192,7 +192,7 @@ const CombinedSidebar = () => {
     return () => {
       isMounted = false;
     };
-  }, [isSidebarOpen, view]);
+  }, [isSidebarOpen, view, fetchWithRetry]);
 
   // Set default categories and extract unique categories/difficulties when data loads
   useEffect(() => {
