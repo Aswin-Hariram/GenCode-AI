@@ -83,7 +83,6 @@ const GenCode = () => {
         space_complexity: data.space_complexity || 'O(1)',
         initial_code: data.initial_code || ''
       }));
-      <DescriptionTab problemData={problemData} theme={theme} />
       // Reset the code editor with the new initial code if available
       if (data.initial_code) {
         localStorage.setItem("editor-lang", 'cpp');
