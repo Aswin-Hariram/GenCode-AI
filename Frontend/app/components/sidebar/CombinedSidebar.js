@@ -64,37 +64,66 @@ const CombinedSidebar = () => {
     };
   }, []);
 
-  // Helper function to fetch with retry
-  const fetchWithRetry = async (url, options = {}, retries = 3, backoff = 300) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  // Helper function to fetch with retry and resource management
+  const fetchWithRetry = useCallback(async (url, options = {}, retries = 3, backoff = 300) => {
+    let controller = null;
+    let timeoutId = null;
     
     try {
+      // Create new controller and timeout for each attempt
+      controller = new AbortController();
+      timeoutId = setTimeout(() => {
+        controller?.abort(new Error('Request timeout'));
+      }, 10000); // 10 second timeout
+      
       const response = await fetch(url, {
         ...options,
         signal: controller.signal,
         headers: {
-          'Cache-Control': 'no-cache',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           ...options.headers,
         },
       });
+      
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const error = new Error(`HTTP error! status: ${response.status}`);
+        error.status = response.status;
+        throw error;
       }
       
-      return await response.json();
+      const data = await response.json();
+      
+      // Explicitly clean up
+      controller = null;
+      timeoutId = null;
+      
+      return data;
+      
     } catch (error) {
-      clearTimeout(timeoutId);
-      if (retries > 0) {
-        // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, backoff));
-        return fetchWithRetry(url, options, retries - 1, backoff * 2);
+      // Clean up resources
+      if (timeoutId) clearTimeout(timeoutId);
+      controller = null;
+      
+      // Don't retry for certain status codes
+      if (error.status && [400, 401, 403, 404, 429].includes(error.status)) {
+        throw error;
       }
+      
+      // Only retry for network errors or server errors
+      if (retries > 0) {
+        // Add jitter to prevent thundering herd
+        const jitter = Math.floor(Math.random() * 100);
+        await new Promise(resolve => setTimeout(resolve, backoff + jitter));
+        return fetchWithRetry(url, options, retries - 1, Math.min(backoff * 2, 10000)); // Cap max backoff at 10s
+      }
+      
       throw error;
     }
-  };
+  }, []); // Empty dependency array as this function is stable
 
   // Fetch recent topics
   useEffect(() => {

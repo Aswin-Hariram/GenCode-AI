@@ -2,9 +2,15 @@ import logging
 import os
 import sys
 import traceback
+import gc
+import psutil
+import time
+from functools import wraps
 from datetime import datetime
 from changeLanguage import LangChange
 from dotenv import load_dotenv
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, flash
 from flask_cors import CORS
@@ -31,8 +37,43 @@ load_dotenv()
 # Create Flask app
 app = Flask(__name__)
 
+# Configure rate limiting
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
+
 # Enable CORS for all routes and all origins
 CORS(app, resources={r"/*": {"origins": "*"}})
+
+# Rate limit error handler
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({
+        'result': 'Error',
+        'message': f'Rate limit exceeded: {e.description}'
+    }), 429
+
+# Memory monitoring endpoint
+@app.route('/api/memory')
+def memory_usage():
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    return jsonify({
+        'rss': mem_info.rss,  # Resident Set Size
+        'vms': mem_info.vms,  # Virtual Memory Size
+        'percent': process.memory_percent(),
+        'available_mb': psutil.virtual_memory().available / (1024 * 1024),
+        'used_mb': psutil.virtual_memory().used / (1024 * 1024)
+    })
+
+def log_memory_usage():
+    """Log current memory usage"""
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    logger.info(f"Memory usage: {mem_info.rss / (1024 * 1024):.2f} MB RSS, {mem_info.vms / (1024 * 1024):.2f} MB VMS")
 
 
 # Constants
@@ -69,6 +110,7 @@ def write_topics(topics):
 
 
 @app.route('/submit', methods=['POST'])
+@limiter.limit("10 per minute")  # Add rate limiting
 def submit():
     """Handle code submission and evaluation."""
     if not request.is_json:
@@ -395,35 +437,62 @@ def index():
         return render_template('index.html', recent_topics=[])
 
 @app.route('/api/recent-topics', methods=['GET'])
+@limiter.limit("30 per minute")  # Add rate limiting
 def api_recent_topics():
     """API endpoint to get recent topics in JSON format"""
+    # Log memory usage before processing
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    logger.info(f"Memory before recent topics: {mem_info.rss / (1024 * 1024):.2f} MB")
+    
     try:
-        # Get recent topics from the topic manager
-        recent = get_recent_topics()
+        # Limit the number of topics to reduce memory usage
+        max_topics = 15
+        recent = get_recent_topics(limit=max_topics)
         
-        # Format the response
-        topics = []
-        for i, topic in enumerate(recent, 1):
-            topics.append({
-                'id': i,
-                'name': topic.get('name', '').replace(' ', '_').lower(),
-                'category': topic.get('category', 'Uncategorized'),
-                'difficulty': topic.get('difficulty', 'medium'),
-                'last_used': topic.get('last_used', 'Recently')
+        if not recent or not isinstance(recent, list):
+            logger.warning("No recent topics found or invalid format")
+            return jsonify({
+                'success': True,
+                'data': []
             })
         
+        # Format the response with memory efficiency
+        topics = []
+        for i, topic in enumerate(recent[:max_topics], 1):
+            try:
+                topics.append({
+                    'id': str(i),
+                    'name': str(topic.get('name', '')).replace(' ', '_').lower(),
+                    'category': str(topic.get('category', 'Uncategorized')),
+                    'difficulty': str(topic.get('difficulty', 'medium')),
+                    'last_used': str(topic.get('last_used', 'Recently'))
+                })
+            except Exception as e:
+                logger.error(f"Error formatting topic {i}: {str(e)}")
+                continue
+        
+        # Force garbage collection
+        if len(topics) > 0:
+            gc.collect()
+            
+        logger.info(f"Returning {len(topics)} recent topics")
         return jsonify({
             'success': True,
             'data': topics
         })
         
     except Exception as e:
-        print(f"Error in api_recent_topics: {e}")
+        logger.error(f"Error in api_recent_topics: {str(e)}\n{traceback.format_exc()}")
         return jsonify({
             'success': False,
             'error': 'Failed to fetch recent topics',
             'details': str(e)
         }), 500
+    finally:
+        # Log memory usage after processing
+        mem_info = process.memory_info()
+        logger.info(f"Memory after recent topics: {mem_info.rss / (1024 * 1024):.2f} MB")
 
 
 def log_error(message, print_to_console=True):
@@ -661,6 +730,20 @@ if __name__ == "__main__":
     # Enable debug mode and detailed error messages
     app.debug = True
     app.config['DEBUG'] = True
+    
+    # Configure garbage collection
+    gc.set_threshold(700, 10, 10)  # Tune these values based on your app's needs
+    
+    # Log memory usage periodically
+    def log_memory():
+        while True:
+            log_memory_usage()
+            time.sleep(300)  # Log every 5 minutes
+    
+    # Start memory logging in a separate thread
+    import threading
+    memory_thread = threading.Thread(target=log_memory, daemon=True)
+    memory_thread.start()
     app.config['PROPAGATE_EXCEPTIONS'] = True
     
     # Set up logging
