@@ -26,6 +26,8 @@ const CombinedSidebar = () => {
     all: null
   });
   const [currentTheme, setCurrentTheme] = useState('light');
+  const [sidebarWidth, setSidebarWidth] = useState(400);
+  const [isResizing, setIsResizing] = useState(false);
 
   // Set theme on mount and listen for changes
   useEffect(() => {
@@ -124,6 +126,53 @@ const CombinedSidebar = () => {
       throw error;
     }
   }, []); // Empty dependency array as this function is stable
+
+  // --- Sidebar Resizing Logic ---
+  const handleResizeMouseDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+  };
+
+  const handleResizeMouseUp = useCallback(() => {
+    if (isResizing) {
+      setIsResizing(false);
+      localStorage.setItem('sidebarWidth', sidebarWidth.toString());
+    }
+  }, [isResizing, sidebarWidth]);
+
+  const handleResizeMouseMove = useCallback((e) => {
+    if (isResizing) {
+      const newWidth = window.innerWidth - e.clientX;
+      const minWidth = 300;
+      const maxWidth = window.innerWidth * 0.45; // Allow up to 45% of screen width
+      if (newWidth >= minWidth && newWidth <= maxWidth) {
+        setSidebarWidth(newWidth);
+      }
+    }
+  }, [isResizing]);
+
+  useEffect(() => {
+    const savedWidth = localStorage.getItem('sidebarWidth');
+    if (savedWidth) {
+      const parsedWidth = parseInt(savedWidth, 10);
+      const minWidth = 300;
+      const maxWidth = window.innerWidth * 0.45;
+      setSidebarWidth(Math.max(minWidth, Math.min(parsedWidth, maxWidth)));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', handleResizeMouseMove);
+      window.addEventListener('mouseup', handleResizeMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleResizeMouseMove);
+      window.removeEventListener('mouseup', handleResizeMouseUp);
+    };
+  }, [isResizing, handleResizeMouseMove, handleResizeMouseUp]);
+  // --- End Sidebar Resizing Logic ---
 
   // Fetch recent topics
   useEffect(() => {
@@ -408,9 +457,10 @@ const CombinedSidebar = () => {
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'tween', duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className={`fixed top-0 right-0 w-full max-w-md h-full shadow-2xl z-50 overflow-y-auto flex flex-col transition-colors duration-300 ${
-          currentTheme === 'dark' 
-            ? 'bg-gray-900 border-l border-gray-800' 
+        style={{ width: `${sidebarWidth}px` }}
+        className={`fixed inset-y-0 right-0 z-50 flex flex-col shadow-2xl overflow-y-auto transition-colors duration-300 ${
+          currentTheme === 'dark'
+            ? 'bg-gray-900 border-l border-gray-800'
             : 'bg-white border-l border-gray-200'
         }`}
       >
@@ -773,6 +823,17 @@ const CombinedSidebar = () => {
               ))}
             </div>
           )}
+        </div>
+
+        <div
+          onMouseDown={handleResizeMouseDown}
+          className={`absolute top-0 left-0 h-full w-2 cursor-col-resize group z-10 select-none ${isResizing ? 'bg-blue-500/20' : ''}`}
+        >
+          <div className={`w-[1px] h-full mx-auto transition-colors duration-200 ${
+            currentTheme === 'dark' 
+              ? 'bg-gray-700/60 group-hover:bg-blue-400' 
+              : 'bg-gray-300 group-hover:bg-blue-500'
+          } ${isResizing ? (currentTheme === 'dark' ? 'bg-blue-400' : 'bg-blue-500') : ''}`}></div>
         </div>
       </motion.aside>
     </>
