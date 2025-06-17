@@ -1,16 +1,12 @@
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import ReactDOMServer from 'react-dom/server';
-import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 
-export const generatePdfFromData = async (problemData, editorCode, solutionCode, resultsData) => {
-  const title = problemData?.title || 'Untitled Problem';
-  const difficulty = problemData?.difficulty || 'Unknown';
-
+export const generatePDF = async (title, difficulty, problemData, editorCode, solutionCode, resultsData) => {
   try {
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -43,8 +39,8 @@ export const generatePdfFromData = async (problemData, editorCode, solutionCode,
     difficultyEl.textContent = `Difficulty: ${difficulty}`;
     difficultyEl.style.fontSize = '14px';
     difficultyEl.style.marginBottom = '20px';
-    difficultyEl.style.color = difficulty === 'Easy' ? 'green' :
-                             difficulty === 'Medium' ? 'orange' :
+    difficultyEl.style.color = difficulty === 'Easy' ? 'green' : 
+                             difficulty === 'Medium' ? 'orange' : 
                              difficulty === 'Hard' ? 'red' : 'gray';
     tempDiv.appendChild(difficultyEl);
 
@@ -218,8 +214,9 @@ export const generatePdfFromData = async (problemData, editorCode, solutionCode,
     }
 
     pdf.save(`${title.replace(/\s+/g, '_')}_DSA_Problem.pdf`);
+    console.log('PDF generated successfully');
   } catch (error) {
     console.error('Error generating PDF:', error);
-    throw new Error('Failed to generate PDF. Please try again.');
+    alert('Failed to generate PDF. Please try again.');
   }
 };

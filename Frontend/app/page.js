@@ -38,7 +38,7 @@ const GenCode = () => {
   const editorRef = useRef(null);
   const consoleHeight = useRef(200);
 
-  const { problemData, isLoading, error: problemError, setProblemData } = useProblemData();
+  const { problemData, isLoading, error: problemError, setProblemData, generateNewProblem } = useProblemData();
   const [isLoadingState, setIsLoadingState] = useState(isLoading);
   const [errorState, setErrorState] = useState(problemError);
   
@@ -256,6 +256,14 @@ const GenCode = () => {
     setIsRunning(true);
     setError(null);
     try {
+      if(!code){
+        setIsConsoleOpen(true);
+        setCompilationResult({
+          result: 'Failure',
+          message: 'No code provided'
+        });
+        return;
+      }
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${process.env.NEXT_PUBLIC_COMPILER_ENDPOINT}`, {
         method: 'POST',
         headers: {
@@ -323,6 +331,8 @@ const GenCode = () => {
         editorCode={code} 
         solutionCode={problemData?.solution} 
         resultsData={response} 
+        generateNewProblem={generateNewProblem}
+        isLoading={isLoading}
       />
       <Split
         className={`flex flex-1 overflow-hidden split-horizontal ${theme === 'dark' ? ' bg-gray-800' : 'prose-slate'}`}

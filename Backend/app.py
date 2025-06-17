@@ -167,15 +167,22 @@ def compile():
         code = request.json.get('code')
         
         # Validate required fields
-        if not lang or not code:
+        if not lang or code is None:
             # Missing required fields for compilation
             return jsonify({
                 'result': 'Failure',
                 'message': 'Both language and code are required.'
             }), 400
 
+        if not code.strip():
+            return jsonify({
+                'result': 'Failure',
+                'message': 'cannot compile empty code'
+            }), 400
+
         # Pass the code to compile_code function
         # Compiling code
+        
         result = compile_code(code, lang)
 
         # Check the result and respond accordingly
