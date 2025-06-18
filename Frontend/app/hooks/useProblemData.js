@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export const useProblemData = () => {
   const [problemData, setProblemData] = useState({
@@ -56,8 +56,16 @@ export const useProblemData = () => {
     } 
   }, []);
 
+  const effectRan = useRef(false);
+
   useEffect(() => {
-    fetchProblemData();
+    if (effectRan.current === false) {
+      fetchProblemData();
+    }
+
+    return () => {
+      effectRan.current = true;
+    };
   }, [fetchProblemData]);
 
   return { problemData, isLoading, error, setProblemData, generateNewProblem: fetchProblemData };

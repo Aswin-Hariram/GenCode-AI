@@ -9,7 +9,7 @@ import CodeEditor from './components/editor/CodeEditor';
 import ConsoleModal from './components/ConsoleModal';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorDisplay from './components/ErrorDisplay';
-import { useProblemData } from './hooks/useProblemData';
+
 import { INITIAL_CODE } from './utils/constants';
 import { useTheme } from './context/ThemeContext';
 
@@ -31,25 +31,64 @@ const GenCode = () => {
   const editorRef = useRef(null);
   const consoleHeight = useRef(200);
 
-  const { problemData, isLoading, error: problemError, setProblemData, generateNewProblem } = useProblemData();
-  const [isLoadingState, setIsLoadingState] = useState(isLoading);
-  const [errorState, setErrorState] = useState(problemError);
-  
-  // Update local state when props change
-  useEffect(() => {
-    setIsLoadingState(isLoading);
-    setErrorState(problemError);
-  }, [isLoading, problemError]);
-  
-  // Constants
-  const EDITOR_LANG_KEY = 'editor-lang';
-  const DEFAULT_LANGUAGE = 'cpp';
+  const [problemData, setProblemData] = useState({
+    title: "",
+    difficulty: "",
+    description: '',
+    realtopic: "",
+    testcases: [],
+    solution: "",
+    space_complexity: "",
+    time_complexity: "",
+    initial_code: "",
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [problemError, setProblemError] = useState(null);
+
+  const generateNewProblem = useCallback(async () => {
+    setIsLoading(true);
+    setProblemError(null);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${process.env.NEXT_PUBLIC_GET_QUESTION_ENDPOINT}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Fetched data:', data);
+      
+      setProblemData({
+        title: data.title,
+        description: data.markdown,
+        solution: data.solution,
+        testcases: data.testcases,
+        difficulty: data.difficulty,
+        time_complexity: data.time_complexity,
+        space_complexity: data.space_complexity,
+        initial_code: data.initial_code,
+        realtopic: data.realtopic
+      });
+      
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setProblemError(err.message || 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    } 
+  }, []);
 
   // Function to fetch a new question for a specific topic
   const fetchQuestionForTopic = useCallback(async (topic) => {
     try {
-      setIsLoadingState(true);
-      setErrorState(null);
+      setIsLoading(true);
+      setProblemError(null);
       
       // Set default language if not already set
       if (!localStorage.getItem(EDITOR_LANG_KEY)) {
@@ -87,11 +126,31 @@ const GenCode = () => {
       
     } catch (error) {
       console.error('Error fetching question:', error);
-      setErrorState(error.message || 'Failed to load question');
+      setProblemError(error.message || 'Failed to load question');
     } finally {
-      setIsLoadingState(false);
+      setIsLoading(false);
     }
-  }, [setProblemData, setCode, setIsLoadingState, setErrorState, setActiveTab]);
+  }, [setProblemData, setCode, setIsLoading, setProblemError, setActiveTab]);
+
+  const effectRan = useRef(false);
+  useEffect(() => {
+    if (effectRan.current === false) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const topic = urlParams.get('topic');
+      if (topic) {
+        fetchQuestionForTopic(topic);
+      } else {
+        generateNewProblem();
+      }
+    }
+    return () => {
+      effectRan.current = true;
+    };
+  }, [generateNewProblem, fetchQuestionForTopic]);
+  
+  // Constants
+  const EDITOR_LANG_KEY = 'editor-lang';
+  const DEFAULT_LANGUAGE = 'cpp';
 
   // Set up event listeners for custom events
   useEffect(() => {
@@ -104,12 +163,13 @@ const GenCode = () => {
     };
     
     const handleShowLoading = (event) => {
-      setIsLoadingState(event.detail);
+      setIsLoading(event.detail);
     };
     
     const handleShowError = (event) => {
-      setErrorState(event.detail);
-      setIsLoadingState(false);
+      const { detail } = event;
+      setProblemError(detail.message);
+      setIsLoading(false);
     };
     
     const handleRegenerateQuestion = (event) => {
@@ -130,14 +190,7 @@ const GenCode = () => {
       window.removeEventListener('showError', handleShowError);
       window.removeEventListener('regenerateQuestion', handleRegenerateQuestion);
     };
-  }, [setProblemData, fetchQuestionForTopic]);
-
-  // Fetch initial question when the component mounts
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const topic = urlParams.get('topic') || 'arrays';
-    fetchQuestionForTopic(topic);
-  }, [fetchQuestionForTopic]);
+  }, [fetchQuestionForTopic, setProblemData, setIsLoading, setProblemError]);
 
   const tabs = [
     { id: 'description', label: 'Description', icon: <FiFileText className="mr-2" size={18} /> },
@@ -308,12 +361,12 @@ const GenCode = () => {
     return 'Run Code';
   };
 
-  if (isLoadingState) {
+  if (isLoading) {
     return <LoadingSpinner />;
   }
 
-  if (errorState) {
-    return <ErrorDisplay error={errorState} />;
+  if (problemError) {
+    return <ErrorDisplay error={problemError} />;
   }
 
   return (
