@@ -8,15 +8,13 @@ export const useProblemData = () => {
     difficulty: "",
     description: '',
     realtopic: "",
-    testcases: [
-      { input: '"babad"', output: '"bab"' },
-      { input: '"cbbd"', output: '"bb"' }
-    ],
+    testcases: [],
     solution: "",
     space_complexity: "",
     time_complexity: "",
+    initial_code: "",
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   
   const fetchProblemData = useCallback(async () => {
@@ -58,9 +56,7 @@ export const useProblemData = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchProblemData();
-  }, [fetchProblemData]);
+
 
   return { problemData, isLoading, error, setProblemData, generateNewProblem: fetchProblemData };
 };

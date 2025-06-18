@@ -43,10 +43,14 @@ const CodeEditor = ({
   const DEFAULT_LANGUAGE = 'cpp';
   
   // Initialize state
-  const [currentLanguage, setCurrentLanguage] = useState(() => {
-    // Initialize from localStorage, prop, or default
-    return localStorage.getItem(EDITOR_LANG_KEY) || language || DEFAULT_LANGUAGE;
-  });
+  const [currentLanguage, setCurrentLanguage] = useState(language || DEFAULT_LANGUAGE);
+
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem(EDITOR_LANG_KEY);
+    if (savedLanguage) {
+      setCurrentLanguage(savedLanguage);
+    }
+  }, []);
   const [error, setError] = useState(null);
   
   // Refs and other state

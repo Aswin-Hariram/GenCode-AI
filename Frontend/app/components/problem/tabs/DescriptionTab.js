@@ -36,6 +36,10 @@ const DescriptionTab = ({ problemData }) => {
   // Sticky section header helper
   const stickyHeader = `sticky top-0 z-10 bg-opacity-80 backdrop-blur-md py-2 px-2 rounded-t-md shadow-sm ${theme === 'dark' ? 'bg-gray-950/80' : 'bg-white/90'}`;
 
+  if (!problemData) {
+    return null; // Or a loading indicator
+  }
+
   return (
     <div
       className={`relative animate-fadeIn rounded-md ${theme === 'dark' ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-blue-100'}`}
