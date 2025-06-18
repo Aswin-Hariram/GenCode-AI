@@ -48,6 +48,7 @@ const GenCode = () => {
   const generateNewProblem = useCallback(async () => {
     setIsLoading(true);
     setProblemError(null);
+    setLanguage('cpp');
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${process.env.NEXT_PUBLIC_GET_QUESTION_ENDPOINT}`, {
         method: 'GET',
