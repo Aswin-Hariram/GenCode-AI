@@ -829,9 +829,9 @@ const CombinedSidebar = () => {
                       </span>
                     </div>
                     
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className={`mt-3 pt-3 border-t ${currentTheme === 'dark' ? 'dark:border-gray-100' : 'dark:border-gray-100'}`}>
                       <button
-                        className={`w-full flex items-center justify-center px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                        className={`w-full flex items-center justify-center px-3 py-2 rounded-md text-xs font-medium transition-colors ${
                           currentTheme === 'dark'
                             ? 'bg-blue-600 hover:bg-blue-700 text-white'
                             : 'bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-800'

@@ -43,7 +43,7 @@ const EnhancedGenCodeLoader = ({ theme }) => {
         {floatingSnippets.map((snippet, idx) => (
           <div
             key={idx}
-            className={`absolute px-3 py-1 rounded-md shadow-lg text-xs font-mono whitespace-nowrap select-none pointer-events-none ${theme === 'dark' ? 'bg-blue-900/90 text-blue-100 border border-blue-800' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}
+            className={`absolute px-3 py-1 rounded-md shadow-lg text-xs font-mono whitespace-nowrap select-none pointer-events-none ${theme === 'dark' ? 'bg-blue-900/90 text-blue-100 border border-blue-800' : 'bg-blue-200 text-blue-800 border border-blue-300'}`}
             style={{
               ...snippet.style,
               position: 'absolute',
@@ -132,7 +132,7 @@ const EnhancedGenCodeLoader = ({ theme }) => {
       </div>
 
       {/* GenCode card */}
-      <div className={`max-w-lg w-full rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-3 border-2 ${theme === 'dark' ? 'bg-gray-900/80 border-blue-900' : 'bg-white/90 border-blue-200'}`}>
+      <div className={`max-w-lg w-full rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-3 border-2 ${theme === 'dark' ? 'bg-gray-900/80 border-blue-900' : 'bg-slate-100/90 border-blue-300'}`}>
         <div className={`text-lg font-mono font-semibold tracking-wide uppercase ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>Building your solution...</div>
         <div className={`text-base text-center ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>GenCode&apos;s AI is assembling logic blocks, optimizing creativity, and preparing a unique answer just for you.</div>
         <div className={`flex items-center gap-2 mt-2`}>
@@ -140,11 +140,11 @@ const EnhancedGenCodeLoader = ({ theme }) => {
           <span className={`inline-block w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-indigo-400' : 'bg-indigo-600'} animate-pulse delay-150`}></span>
           <span className={`inline-block w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-blue-400' : 'bg-blue-600'} animate-pulse delay-300`}></span>
         </div>
-        <div className={`mt-3 px-4 py-1 rounded-full text-xs font-bold tracking-wider ${theme === 'dark' ? 'bg-blue-900/80 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>AI Coding Magic · {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+        <div className={`mt-3 px-4 py-1 rounded-full text-xs font-bold tracking-wider ${theme === 'dark' ? 'bg-blue-900/80 text-blue-300' : 'bg-blue-200 text-blue-800'}`}>AI Coding Magic · {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
       </div>
 
       {/* Random tip/fun fact */}
-      <div className={`mt-8 text-center text-sm font-medium px-4 py-2 rounded-lg shadow-md ${theme === 'dark' ? 'bg-blue-950/80 text-blue-200 border border-blue-900' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}
+      <div className={`mt-8 text-center text-sm font-medium px-4 py-2 rounded-lg shadow-md ${theme === 'dark' ? 'bg-blue-950/80 text-blue-200 border border-blue-900' : 'bg-blue-100 text-blue-800 border border-blue-300'}`}
         style={{maxWidth:'400px'}}>
         💡 {randomTip}
       </div>
@@ -170,7 +170,7 @@ const ResultsTab = ({ response, status, theme = 'light', isLoading = false }) =>
           <div className={`rounded-lg p-4 mb-6 ${
             isError 
               ? theme === 'dark' ? 'bg-red-900/20' : 'bg-red-50' 
-              : theme === 'dark' ? 'bg-blue-900/20' : 'bg-blue-50'
+              : theme === 'dark' ? 'bg-blue-900/20' : 'bg-blue-100'
           }`}>
             <div className={`text-lg font-semibold mb-2 ${
               isError 

@@ -135,13 +135,13 @@ const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsDa
       {/* Center Section (Timer) */}
       <div className="flex-none flex flex-col items-center justify-center min-w-[180px]">
         <div
-          className={`flex items-center space-x-2 text-base font-mono px-4 py-1 rounded-xl shadow-lg backdrop-blur-md bg-white/60 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 transition-colors duration-500 ${getTimerColorClasses()}`}
+          className={`flex items-center space-x-2 text-base font-mono px-4 py-1 rounded-xl shadow-md ${theme === 'dark' ? 'dark:shadow-lg dark:backdrop-blur-md dark:bg-gray-900/50 dark:border-gray-700' : 'bg-white border-blue-100'} border transition-colors duration-500 ${getTimerColorClasses()}`}
           tabIndex={0}
           aria-label={`Timer: ${formatTime(time)}`}
           title={`Timer: ${formatTime(time)}`}
         >
-          <FiClock className={`w-3 h-3 ${theme === 'dark' ? 'text-blue-300' : 'text-blue-500'} transition-colors duration-300`} />
-          <span className="tracking-widest select-none text-md font-semibold drop-shadow-sm">
+          <FiClock className={`w-4 h-4 transition-colors duration-300 ${theme === 'dark' ? 'text-blue-300' : 'text-blue-500'}`} />
+          <span className="tracking-widest select-none text-md font-semibold">
             {formatTime(time)}
           </span>
           <button

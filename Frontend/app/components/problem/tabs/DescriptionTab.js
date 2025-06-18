@@ -34,7 +34,7 @@ const DescriptionTab = ({ problemData }) => {
   };
 
   // Sticky section header helper
-  const stickyHeader = `sticky top-0 z-10 bg-opacity-80 backdrop-blur-md py-2 px-2 rounded-t-md shadow-sm ${theme === 'dark' ? 'bg-gray-950/80' : 'bg-white/90'}`;
+  const stickyHeader = `sticky top-0 z-10 bg-opacity-80 backdrop-blur-md py-2 px-2 rounded-t-md shadow-sm ${theme === 'dark' ? 'bg-gray-950/80' : 'bg-slate-100/90'}`;
 
   if (!problemData) {
     return null; // Or a loading indicator
@@ -42,13 +42,13 @@ const DescriptionTab = ({ problemData }) => {
 
   return (
     <div
-      className={`relative animate-fadeIn rounded-md ${theme === 'dark' ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-blue-100'}`}
+      className={`relative animate-fadeIn rounded-md ${theme === 'dark' ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-100 via-slate-100 to-blue-200'}`}
       style={{ fontFamily: 'Urbanist, sans-serif' }}
       aria-label="Problem Description Tab"
     >
       {/* Animated Markdown Description */}
       <div
-        className={`prose prose-blue dark:prose-invert transition-all duration-500 rounded-xl shadow-md mx-auto max-w-3xl px-6 py-6 ${theme === 'dark' ? 'bg-gray-900/80' : 'bg-white/90'} fade-in`}
+        className={`prose prose-blue dark:prose-invert transition-all duration-500 rounded-xl shadow-md mx-auto max-w-3xl px-6 py-6 ${theme === 'dark' ? 'bg-gray-900/80' : 'bg-slate-100/90'} fade-in`}
         style={{ animation: 'fadeIn 0.8s' }}
         aria-label="Problem Description"
       >
@@ -83,7 +83,7 @@ const DescriptionTab = ({ problemData }) => {
                 <div className={`relative w-full h-full transition-transform duration-500 transform-style-preserve-3d group-hover:rotate-y-180 group-focus:rotate-y-180`}>
                   {/* Front */}
                   <div className={`absolute w-full h-full rounded-xl shadow-lg p-5 flex flex-col justify-center gap-2 transition-colors duration-300 ${
-                    theme === 'dark' ? 'bg-gray-800/90 border border-blue-900/30' : 'bg-white/90 border border-blue-100'
+                    theme === 'dark' ? 'bg-gray-800/90 border border-blue-900/30' : 'bg-slate-100/90 border border-blue-300'
                   } backface-hidden`}> 
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`text-xs font-semibold uppercase tracking-wide ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>Example {i + 1}</span>
@@ -127,7 +127,7 @@ const DescriptionTab = ({ problemData }) => {
                   </div>
                   {/* Back */}
                   <div className={`absolute w-full h-full rounded-xl shadow-lg p-5 flex flex-col justify-center items-center transition-colors duration-300 ${
-                    theme === 'dark' ? 'bg-blue-950/95 border border-blue-900/60' : 'bg-blue-100/95 border border-blue-300/60'
+                    theme === 'dark' ? 'bg-blue-950/95 border border-blue-900/60' : 'bg-blue-200/95 border border-blue-400/60'
                   } rotate-y-180 backface-hidden`}> 
                     <span className={`text-xs font-bold uppercase tracking-wide mb-2 ${theme === 'dark' ? 'text-blue-200' : 'text-blue-700'}`}>Explanation</span>
                     <div className={`text-xs text-center ${theme === 'dark' ? 'text-blue-100' : 'text-blue-800'}`}>{example.explanation}</div>
@@ -163,7 +163,7 @@ const DescriptionTab = ({ problemData }) => {
               : problemData.constraints.slice(0, 5)
             ).map((constraint, i) => (
               <span key={i} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium shadow-sm border ${
-                theme === 'dark' ? 'bg-gray-900/80 text-blue-200 border-blue-900/30' : 'bg-blue-50 text-blue-700 border-blue-200'
+                theme === 'dark' ? 'bg-gray-900/80 text-blue-200 border-blue-900/30' : 'bg-blue-100 text-blue-800 border-blue-300'
               }`}>
                 <BadgeInfo size={14} /> {constraint}
               </span>

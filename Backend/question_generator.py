@@ -5,7 +5,8 @@ def generate_dsa_question(topic: str) -> dict:
     prompt = f"""
     You are an expert Scenario DSA question generator for coding interviews.
     Generate a fully formatted, clean Markdown output for a **Scenario Based DSA problem** based on the
-    topic: "{topic}".
+    topic: "{topic}"
+    [Note: Avoid using Bullet Points].
     1. Difficulty: Assign a difficulty level (Easy, Medium, Hard) based on the problem's complexity.
     2. Title: [Insert a relevant and concise title for the problem without revealing topic either directly or indirectly in the title]
     3. Markdown:
@@ -26,21 +27,21 @@ def generate_dsa_question(topic: str) -> dict:
     ## Constraints
     - List all constraints (e.g., 1 <= N <= 10^5).
     
-    ## Examples
+    ## Examples [Note: Avoid using Bullet Points]
     
     ### Example 1
     - **Input:** [Your sample input here]
     - **Output:** [Your expected output here]
     - **Explanation:** Provide a clear and concise explanation of how the sample works.
-    - Try to explain visually usingmarkdown.
+    - Try to explain visually using markdown incase of complex explanation or matrix, tree, graph, etc.
 
     ### Example 2
     - **Input:** [Your sample input here]
     - **Output:** [Your expected output here]
     - **Explanation:** Provide a clear and concise explanation of how the sample works.
-    - Try to explain visually using markdown.
+    - Try to explain visually using markdown incase of complex explanation or matrix, tree, graph, etc.
 
-    ## Test Cases
+    ## Test Cases [Note: Avoid using Bullet Points]
     
     ### Test Case 1
     - **Input:** [Input values for test case 1]

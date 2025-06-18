@@ -116,7 +116,7 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
   return (
     <div className="space-y-6 font-sans">
       <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
-        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white/50'
+        theme === 'dark' ? 'bg-gray-800/50' : 'bg-slate-100/50'
       }`}>
         <h3 className={`text-2xl font-bold mb-5 ${ 
           theme === 'dark' ? 'text-blue-300' : 'text-blue-600' 
@@ -138,8 +138,7 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
                       isConverting ? 'opacity-60 cursor-not-allowed' : ''
                     } ${ 
                       theme === 'dark'
-                        ? 'bg-gray-700 text-gray-200 border-gray-600 focus:border-blue-500 focus:ring-blue-500'
-                        : 'bg-gray-50 text-gray-800 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                        ? 'bg-gray-700 text-gray-200 border-gray-600 focus:border-blue-500 focus:ring-blue-500' : 'bg-slate-100 text-gray-700 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
                     }`}
                   >
                     {languageOptions.map((option) => (
@@ -173,7 +172,7 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
           <div className={`rounded-xl relative group transition-all duration-300 ${ 
             theme === 'dark' 
               ? 'bg-gray-900/70 border border-gray-700/80'
-              : 'bg-gray-50/70 border border-gray-200/80'
+              : 'bg-slate-100/70 border border-gray-300/80'
           }`}>
             <button
               onClick={handleCopyCode}
@@ -182,8 +181,7 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
                 isConverting ? 'opacity-50 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
               } ${ 
                 theme === 'dark'
-                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-600'
+                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-slate-200 hover:bg-slate-300 text-gray-700'
               }`}
               aria-label="Copy code"
             >
