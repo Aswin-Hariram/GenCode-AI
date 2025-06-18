@@ -248,6 +248,7 @@ def get_dsa_question():
             topic = topic_details['name']
         
         # Generate DSA question using the selected topic
+        print(f"Generating DSA question for topic: {topic}")
         result = generate_dsa_question(topic)
         
         # Ensure topic is a string and clean it up

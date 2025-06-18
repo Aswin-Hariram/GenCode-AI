@@ -128,28 +128,45 @@ const CombinedSidebar = () => {
       if (isMounted) {
         setIsLoading(prev => ({ ...prev, recent: true }));
       }
-      
+
       try {
-        const result = await fetcher(
+        // Fetch all topics first to get category information
+        const allTopicsResponse = await fetcher(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/all-topics?limit=1000&offset=0`, // Fetch a large number
+          { cache: 'no-store' }
+        );
+
+        if (!allTopicsResponse.success || !Array.isArray(allTopicsResponse.data)) {
+          throw new Error('Could not fetch all topics for category mapping');
+        }
+        const allTopicsMap = new Map(allTopicsResponse.data.map(t => [t.name, t]));
+
+        // Fetch recent topics
+        const recentTopicsResponse = await fetcher(
           `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/recent-topics`,
           { cache: 'no-store' }
         );
-        
+
         if (isMounted) {
-          if (result && result.success && Array.isArray(result.data)) {
-            setRecentTopics(result.data);
+          if (recentTopicsResponse && recentTopicsResponse.success && Array.isArray(recentTopicsResponse.data)) {
+            const enrichedRecentTopics = recentTopicsResponse.data.map(recent => {
+              const fullTopic = allTopicsMap.get(recent.name);
+              return {
+                ...recent,
+                category: fullTopic ? fullTopic.category : 'Uncategorized',
+                difficulty: fullTopic ? fullTopic.difficulty : 'Easy',
+              };
+            });
+            setRecentTopics(enrichedRecentTopics);
             setError(prev => ({ ...prev, recent: null }));
           } else {
-            throw new Error('Invalid response format from server');
+            throw new Error('Invalid response format for recent topics');
           }
         }
       } catch (error) {
-        console.error('Failed to fetch recent topics:', error);
+        console.error('Failed to fetch and process recent topics:', error);
         if (isMounted) {
-          setError(prev => ({
-            ...prev,
-            recent: 'Failed to load recent topics. Please try again later.'
-          }));
+          setError(prev => ({ ...prev, recent: 'Failed to load recent topics.' }));
           setRecentTopics([]);
         }
       } finally {

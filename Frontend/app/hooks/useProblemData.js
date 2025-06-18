@@ -14,7 +14,7 @@ export const useProblemData = () => {
     time_complexity: "",
     initial_code: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
   const fetchProblemData = useCallback(async () => {
@@ -53,10 +53,12 @@ export const useProblemData = () => {
       setError(err.message || 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
-    }
+    } 
   }, []);
 
-
+  useEffect(() => {
+    fetchProblemData();
+  }, [fetchProblemData]);
 
   return { problemData, isLoading, error, setProblemData, generateNewProblem: fetchProblemData };
 };

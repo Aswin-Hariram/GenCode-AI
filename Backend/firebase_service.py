@@ -254,14 +254,21 @@ class FirebaseService:
     def track_topic_usage(cls, topic_name):
         """Track when a topic is used (for direct selection or question generation)"""
         try:
-            # Get the topic to find its category
-            topic_doc = cls.get_topics_collection().document(topic_name).get()
-            if topic_doc.exists:
-                topic_data = topic_doc.to_dict()
-                category = topic_data.get('category', 'Uncategorized')
-                cls.add_to_history(topic_name, category)
+            # Perform a case-insensitive search for the topic to ensure data consistency
+            all_topics = cls.get_all_topics()
+            found_topic = None
+            for topic in all_topics:
+                if topic.get('name', '').lower() == topic_name.lower():
+                    found_topic = topic
+                    break
+
+            if found_topic:
+                # Use the canonical name and category from the database
+                canonical_name = found_topic.get('name')
+                category = found_topic.get('category', 'Uncategorized')
+                cls.add_to_history(canonical_name, category)
             else:
-                # If topic doesn't exist, add to history with a default category
+                # If topic doesn't exist, add to history with the given name and a default category
                 cls.add_to_history(topic_name, 'Uncategorized')
         except Exception as e:
             print(f"Error tracking topic usage: {str(e)}")
