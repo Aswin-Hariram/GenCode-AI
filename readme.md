@@ -1,5 +1,9 @@
 # 🚀 GenCode AI - Full Stack Development Platform
 
+ <img width="1470" alt="Screenshot 2025-06-19 at 12 16 23 AM" src="https://github.com/user-attachments/assets/2c27f7be-6c0f-4947-b6e6-91019a199ea8" />
+<img width="1470" alt="Screenshot 2025-06-19 at 12 16 16 AM" src="https://github.com/user-attachments/assets/01fde6d3-8e55-4482-9267-4cd23aa47493" />
+<img width="1470" alt="Screenshot 2025-06-19 at 12 17 46 AM" src="https://github.com/user-attachments/assets/f18231b7-d29b-4ad7-91f7-fb842df8daed" />
+
 <div align="center">
   <img src="https://img.shields.io/badge/Next.js-13.5.6-black?style=for-the-badge&logo=next.js" alt="Next.js">
   <img src="https://img.shields.io/badge/React-18.2.0-61DAFB?style=for-the-badge&logo=react" alt="React">
