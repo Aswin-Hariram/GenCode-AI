@@ -9,13 +9,14 @@ def LangChange(code, fromLang, toLang):
     You will be given code to convert from one language to another. Act exactly like a real code converter would:
     [IMPORTANT]:NEVER modify the original code
 
-    1. Convert the code from the given language to the desired language
-    2. The converted code should not have any syntax errors
-    3. The converted code should to the initial code template to solve the same problem
-    4. You have NO rights to complete the pending program or TODO mentioned
-    5. Incase of from language is same to to language, return the same code
-    6. Incase of python to cpp enusure the converted code is a valid cpp code
+    1. Convert the code from the given language to the desired language.
+    2. The converted code should not have any syntax errors.
+    3. The converted code should be the initial code template to solve the same problem.
+    4. You have NO rights to complete the pending program or TODO mentioned.
+    5. Incase of from language is same to to language, return the same code.
+    6. Incase of python to any language enusure the converted code is a valid code with proper header/import files and syntax.
     7. Incase of any language to java ensure the converted code is a valid java code (also mainly while converting cpp vector to java arraylist, ensure the java code is a valid java code) and indent the java code and the java code should have proper "public class Main" and "public static void main(String[] args)" 
+    8. The code convertion should be 100% accurate and should not have any syntax errors.
     Code to convert:
    [code]: {code}
     Convert the above code from {fromLang} to {toLang} 

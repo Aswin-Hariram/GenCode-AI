@@ -321,6 +321,13 @@ const GenCode = () => {
         resultsData={response} 
         generateNewProblem={generateNewProblem}
         isLoading={isLoading}
+        onSubmitCode={() => handleSubmitCode({
+          description: problemData?.description,
+          typedSolution: code,
+          actualSolution: problemData?.solution,
+          language: language
+        })}
+        setActiveTab={setActiveTab}
       />
       <Split
         className={`flex flex-1 overflow-hidden split-horizontal ${theme === 'dark' ? ' bg-gray-800' : 'prose-slate'}`}
@@ -370,7 +377,7 @@ const GenCode = () => {
             response={response}
             status={status_data}
             theme={theme} 
-          
+            isLoading={isSubmitting}
           />
         </div>
         <div className="flex flex-col h-full">
@@ -390,6 +397,7 @@ const GenCode = () => {
             theme={theme}
             isRunning={isRunning}
             isSubmitting={isSubmitting}
+            setActiveTab={setActiveTab}
           />
           
         </div>

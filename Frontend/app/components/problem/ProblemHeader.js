@@ -5,7 +5,7 @@ import { useSidebar } from '../../context/SidebarContext';
 import { useState, useEffect } from 'react';
 import { generatePDF as generatePDFUtil } from '../../utils/pdfUtils';
 
-const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsData, generateNewProblem, isLoading }) => {
+const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsData, generateNewProblem, isLoading, onSubmitCode, setActiveTab }) => {
   const { toggleSidebar } = useSidebar();
   const [isRegenerating, setIsRegenerating] = useState(false);
   
@@ -114,11 +114,11 @@ const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsDa
   };
 
   return (
-    <div className={`flex items-center justify-between p-4 px-6 ${
+    <div className={`flex items-center justify-between py-2 pt-3 px-6 ${
       theme === 'dark' 
-        ? 'bg-gradient-to-br from-gray-800 via-gray-900 to-gray-900 shadow-sm border-b border-gray-700' 
-        : 'bg-gradient-to-br from-white via-gray-50 to-gray-100 shadow-sm border-b border-gray-200'
-    } transition-colors duration-300`}>
+        ? 'bg-gray-800 text-gray-200 border-b border-gray-700' 
+        : 'bg-gray-100 text-gray-800 border-b border-gray-200'
+    } transition-colors duration-300`} style={{ fontFamily: 'Urbanist, sans-serif' }}>
       {/* Left Section */}
       <div className="flex-1 flex items-center space-x-4">
         <h1 className={`font-bold text-xl ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} tracking-tight`}>
@@ -133,16 +133,38 @@ const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsDa
       </div>
 
       {/* Center Section (Timer) */}
-      <div className="flex-none flex justify-center items-center">
-        <div className={`flex items-center space-x-2 text-sm font-mono px-2 py-1 rounded-md ${getTimerColorClasses()}`}>
-          <span>{formatTime(time)}</span>
-          <button 
+      <div className="flex-none flex flex-col items-center justify-center min-w-[180px]">
+        <div
+          className={`flex items-center space-x-2 text-base font-mono px-4 py-1 rounded-xl shadow-lg backdrop-blur-md bg-white/60 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 transition-colors duration-500 ${getTimerColorClasses()}`}
+          tabIndex={0}
+          aria-label={`Timer: ${formatTime(time)}`}
+          title={`Timer: ${formatTime(time)}`}
+        >
+          <FiClock className={`w-3 h-3 ${theme === 'dark' ? 'text-blue-300' : 'text-blue-500'} transition-colors duration-300`} />
+          <span className="tracking-widest select-none text-md font-semibold drop-shadow-sm">
+            {formatTime(time)}
+          </span>
+          <button
             onClick={togglePause}
-            className={`p-1 rounded-full transition-colors duration-200 ${theme === 'dark' ? 'text-gray-400 hover:bg-gray-600/80' : 'text-gray-500 hover:bg-gray-300/80'}`}
+            className={`p-1 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 ${theme === 'dark' ? 'text-gray-400 hover:bg-gray-600/80' : 'text-gray-500 hover:bg-gray-300/80'}`}
             title={isPaused ? 'Resume' : 'Pause'}
+            aria-label={isPaused ? 'Resume timer' : 'Pause timer'}
           >
             {isPaused ? <FiPlay className="w-4 h-4" /> : <FiPause className="w-4 h-4" />}
           </button>
+        </div>
+        {/* Progress Bar below the timer */}
+        <div className="w-full mt-1 flex items-center justify-center">
+          <div className="relative w-36 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+            <div
+              className="h-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 transition-all duration-500"
+              style={{ width: `${Math.min((time / 3600) * 100, 100)}%` }}
+              aria-valuenow={time}
+              aria-valuemin={0}
+              aria-valuemax={3600}
+              role="progressbar"
+            ></div>
+          </div>
         </div>
       </div>
 
@@ -206,6 +228,7 @@ const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsDa
         >
           <FiShare className="w-5 h-5" />
         </button>
+      
       </div>
     </div>
   );
@@ -225,7 +248,9 @@ ProblemHeader.propTypes = {
   solutionCode: PropTypes.string,
   resultsData: PropTypes.string,
   generateNewProblem: PropTypes.func,
-  isLoading: PropTypes.bool
+  isLoading: PropTypes.bool,
+  onSubmitCode: PropTypes.func,
+  setActiveTab: PropTypes.func
 };
 
 ProblemHeader.defaultProps = {
@@ -235,7 +260,9 @@ ProblemHeader.defaultProps = {
   solutionCode: '',
   resultsData: '',
   generateNewProblem: () => {},
-  isLoading: false
+  isLoading: false,
+  onSubmitCode: null,
+  setActiveTab: null
 };
 
 export default ProblemHeader;

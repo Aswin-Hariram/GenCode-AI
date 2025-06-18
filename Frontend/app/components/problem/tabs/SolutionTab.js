@@ -6,10 +6,15 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import { getMarkdownComponents } from "../markdown/MarkdownComponents";
-import { Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { Copy, Check, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import SkeletonLoader from './SkeletonLoader';
 
 const SolutionTab = ({ problemData, theme = 'light' }) => {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const [copied, setCopied] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [error, setError] = useState(null);
@@ -109,79 +114,115 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className={`rounded-lg p-6 shadow-lg ${
-        theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
+    <div className="space-y-6 font-sans">
+      <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
+        theme === 'dark' ? 'bg-gray-800/50' : 'bg-white/50'
       }`}>
-        <h3 className={`text-xl font-semibold mb-4 ${
-          theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
+        <h3 className={`text-2xl font-bold mb-5 ${ 
+          theme === 'dark' ? 'text-blue-300' : 'text-blue-600' 
         }`}>Solution Approach</h3>
-        <div className={`space-y-4 ${
-          theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+        <div className={`space-y-5 ${ 
+          theme === 'dark' ? 'text-gray-300' : 'text-gray-700' 
         }`}>
-          <div className="space-y-2 mb-4">
-            <div className="flex items-center gap-2">
-              <span>Select Language:</span>
-              <select
-                value={selectedLanguage}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                disabled={isConverting}
-                className={`rounded-md px-3 py-1 ${
-                  theme === 'dark'
-                    ? 'bg-gray-700 text-gray-200 border-gray-600'
-                    : 'bg-white text-gray-800 border-gray-300'
-                } border ${isConverting ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {languageOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+          <div className="space-y-3 mb-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <label htmlFor="language-select" className="font-medium">Language:</label>
+                <div className="relative">
+                  <select
+                    id="language-select"
+                    value={selectedLanguage}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    disabled={isConverting}
+                    className={`appearance-none rounded-lg px-4 py-2 pr-8 border-2 transition-all duration-200 ${ 
+                      isConverting ? 'opacity-60 cursor-not-allowed' : ''
+                    } ${ 
+                      theme === 'dark'
+                        ? 'bg-gray-700 text-gray-200 border-gray-600 focus:border-blue-500 focus:ring-blue-500'
+                        : 'bg-gray-50 text-gray-800 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                    }`}
+                  >
+                    {languageOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className={`absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none ${isConverting ? 'opacity-60' : ''}`}>
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.516 7.548c.436-.446 1.043-.481 1.576 0L10 10.405l2.908-2.857c.533-.481 1.141-.446 1.574 0 .436.445.408 1.197 0 1.615l-3.712 3.667a1.103 1.103 0 01-1.574 0L5.516 9.163c-.408-.418-.436-1.17 0-1.615z"/></svg>
+                  </div>
+                </div>
+              </div>
               {isConverting && (
-                <span className="text-sm text-blue-500 ml-2">Converting...</span>
+                <div className="flex items-center gap-2 text-sm text-blue-400">
+                  <RefreshCw size={16} className="animate-spin" />
+                  <span>Converting...</span>
+                </div>
               )}
             </div>
             {error && (
-              <div className={`text-sm p-2 rounded ${
-                theme === 'dark' ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-600'
+              <div className={`text-sm p-3 rounded-lg flex items-center gap-2 ${ 
+                theme === 'dark' ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600' 
               }`}>
-                {error}
+                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/></svg>
+                <span>{error}</span>
               </div>
             )}
           </div>
-          <p>Here&apos;s an efficient solution to the problem:</p>
-          <div className={`rounded-lg p-4 relative ${
+          <p className="text-base">Here&apos;s an efficient solution to the problem:</p>
+          <div className={`rounded-xl relative group transition-all duration-300 ${ 
             theme === 'dark' 
-              ? 'bg-gray-900 border border-gray-700' 
-              : 'bg-white border border-gray-200'
+              ? 'bg-gray-900/70 border border-gray-700/80'
+              : 'bg-gray-50/70 border border-gray-200/80'
           }`}>
             <button
               onClick={handleCopyCode}
-              className={`absolute top-2 right-2 px-3 py-1 rounded-md text-sm transition-colors flex items-center gap-1 ${
+              disabled={isConverting}
+              className={`absolute top-3 right-3 p-2 rounded-lg text-sm transition-all duration-200 flex items-center gap-1.5 ${ 
+                isConverting ? 'opacity-50 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
+              } ${ 
                 theme === 'dark'
                   ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-600'
               }`}
               aria-label="Copy code"
             >
               {copied ? (
                 <>
-                  <Check size={16} /> Copied
+                  <Check size={16} className="text-green-500" />
+                  <span className="text-green-500">Copied!</span>
                 </>
               ) : (
                 <>
-                  <Copy size={16} /> Copy
+                  <Copy size={16} />
+                  <span>Copy</span>
                 </>
               )}
             </button>
-            <SyntaxHighlighter
-              language={selectedLanguage}
-              style={theme === 'dark' ? oneDark : oneLight}
-              className="rounded-md"
-            >
-              {convertedCode}
-            </SyntaxHighlighter>
+            <div className="p-4 min-h-[200px]">
+              {isConverting ? (
+                <SkeletonLoader theme={theme} />
+              ) : (
+                <SyntaxHighlighter
+                  language={selectedLanguage}
+                  style={theme === 'dark' ? oneDark : oneLight}
+                  customStyle={{ 
+                    background: 'transparent',
+                    fontSize: '14px',
+                    borderRadius: '0.75rem',
+                    padding: '0'
+                  }}
+                  codeTagProps={{ 
+                    style: { 
+                      fontFamily: 'var(--font-geist-mono)',
+                    }
+                  }}
+                  className="!bg-transparent"
+                >
+                  {convertedCode}
+                </SyntaxHighlighter>
+              )}
+            </div>
           </div>
           <div className="mt-6 space-y-4">
             <div className={`mb-4 ${

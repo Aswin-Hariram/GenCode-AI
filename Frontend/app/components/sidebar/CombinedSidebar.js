@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { FiBook, FiClock, FiRotateCw, FiX, FiAlertCircle, FiSearch } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
@@ -20,6 +20,9 @@ import { useTheme } from '../../context/ThemeContext';
 
 
 const CombinedSidebar = () => {
+  // Ref used as the "sentinel" element for triggering infinite scroll when
+  // it becomes visible at the bottom of the list.
+  const sentinelRef = useRef(null);
   const { isSidebarOpen, closeSidebar } = useSidebar();
   const [view, setView] = useState('recent'); // 'recent' or 'all'
   const [recentTopics, setRecentTopics] = useState([]);
@@ -219,19 +222,16 @@ const CombinedSidebar = () => {
   useEffect(() => {
     // Default categories
     const defaultCategories = new Set([
-      'string', 
-      'hashmap', 
-      'matrix', 
-      'interval',
-      'binary-search',
-      'sort',
-      'stack',
-      'queue',
-      'tree',
-      'graph',
-      'backtracking',
+      'arrays',
+      'matrix',
+      'string',
+      'linked-lists',
+      'trees',
+      'graphs',
+      'sorting',
+      'searching',
       'dynamic-programming',
-
+      'other',
     ]);
     
     // Default difficulties
@@ -332,12 +332,46 @@ const CombinedSidebar = () => {
     }
   }, [isLoading, hasMoreAllTopics, allTopics, fetcher]);
 
+  // Fallback scroll handler (kept for legacy browsers / environments where
+  // IntersectionObserver might not be available)
   const handleContentScroll = useCallback((e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
     if (scrollHeight - scrollTop <= clientHeight + 150) {
       loadMoreAllTopics();
     }
   }, [loadMoreAllTopics]);
+
+  // ----- IntersectionObserver to trigger loadMoreAllTopics -----
+  useEffect(() => {
+    if (view !== 'all') return; // Only observe in the all-topics view
+
+    // If browser does not support IntersectionObserver, we gracefully exit and
+    // rely on the scroll handler fallback defined above.
+    if (typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        loadMoreAllTopics();
+      }
+    }, {
+      root: null,          // viewport / closest scrolling ancestor
+      rootMargin: '0px',
+      threshold: 1.0       // Trigger when sentinel is fully in view
+    });
+
+    const sentinelEl = sentinelRef.current;
+    if (sentinelEl) {
+      observer.observe(sentinelEl);
+    }
+
+    // Cleanup on unmount or when view changes
+    return () => {
+      if (sentinelEl) {
+        observer.unobserve(sentinelEl);
+      }
+      observer.disconnect();
+    };
+  }, [view, loadMoreAllTopics]);
 
   // Helper function to get difficulty badge styles
   const getDifficultyStyles = (difficulty) => {
@@ -804,6 +838,7 @@ const CombinedSidebar = () => {
                   <FiRotateCw className={`animate-spin w-6 h-6 ${currentTheme === 'dark' ? 'text-blue-400' : 'text-blue-500'}`} />
                 </div>
               )}
+              {view === 'all' && <div ref={sentinelRef} className="h-1" />}
             </div>
           )}
         </div>

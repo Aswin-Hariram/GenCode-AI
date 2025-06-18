@@ -5,7 +5,7 @@ import DescriptionTab from './tabs/DescriptionTab';
 import ResultsTab from './tabs/ResultsTab';
 import SolutionTab from './tabs/SolutionTab';
 
-const ProblemDescription = ({ problemData, activeTab, response, status, theme }) => {
+const ProblemDescription = ({ problemData, activeTab, response, status, theme, isLoading }) => {
   const [copied, setCopied] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [selectedText, setSelectedText] = useState('');
@@ -68,7 +68,7 @@ const ProblemDescription = ({ problemData, activeTab, response, status, theme })
       case "description":
         return <DescriptionTab problemData={problemData} theme={theme} />;
       case "results":
-        return <ResultsTab response={response} status={status} theme={theme} />;
+        return <ResultsTab response={response} status={status} theme={theme} isLoading={isLoading} />;
       case "solution":
         return <SolutionTab problemData={problemData} theme={theme}/>;
       default:
@@ -88,7 +88,7 @@ const ProblemDescription = ({ problemData, activeTab, response, status, theme })
   };
 
   return (
-    <div className="h-full overflow-auto p-6 relative">
+    <div className="h-full overflow-auto p-6 relative" style={{ fontFamily: 'Urbanist, sans-serif' }}>
       {renderContent()}
       
       {selectedText && renderFloatingCopyButton()}

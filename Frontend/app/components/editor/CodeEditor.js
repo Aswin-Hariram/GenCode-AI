@@ -27,7 +27,8 @@ const CodeEditor = ({
   problemData,
   theme,
   isRunning,
-  isSubmitting
+  isSubmitting,
+  setActiveTab // <--- Added
 }) => {
   const handleToggleFullscreen = useCallback(() => {
     if (onToggleFullscreen) {
@@ -54,7 +55,10 @@ const CodeEditor = ({
   
   // UI state
   const [autoSuggestEnabled, setAutoSuggestEnabled] = useState(true);
-  const [editorTheme, setEditorTheme] = useState("vs-dark");
+  const [editorTheme, setEditorTheme] = useState(() => {
+    const storedTheme = typeof window !== 'undefined' ? localStorage.getItem('editor-theme') : null;
+    return storedTheme || 'vs-dark';
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentFontSize, setCurrentFontSize] = useState(initialFontSize);
   const [isLoading, setIsLoading] = useState(false);
@@ -134,8 +138,82 @@ const CodeEditor = ({
     if (storedAutoSuggest !== null) setAutoSuggestEnabled(storedAutoSuggest === "true");
   }, [setLanguage, handleToggleFullscreen]);
 
+  // Utility to get CSS variable or fallback
+  const getCssVar = (name, fallback) => {
+    if (typeof window === 'undefined') return fallback;
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  };
+
+  // Define and set Monaco theme based on current theme
+  const applyMonacoTheme = (monacoInstance, themeName) => {
+    // Use a much darker background for dark theme
+    const darkBg = '#111827'; // ultra-dark for custom feel
+    const darkBgHighlight = '#1e293b'; // slightly lighter for highlights (tailwind slate-800)
+    const darkBgGuide = '#1e293b80'; // same as above with opacity
+    const darkSelection = '#33415580'; // tailwind slate-700 with opacity
+    const darkInactiveSelection = '#33415540';
+    const darkIndentGuide = '#374151'; // tailwind slate-700
+    const darkLineNumber = '#64748b'; // tailwind slate-400
+    const darkLineNumberActive = '#f8fafc'; // tailwind slate-50
+    const darkWhitespace = '#334155';
+    const lightBg = '#ffffff';
+    monacoInstance.editor.defineTheme('gencode-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: '', foreground: 'F8F8F2', background: '111827' },
+        { token: 'comment', foreground: '64748B' },
+        { token: 'keyword', foreground: 'FF79C6' },
+        { token: 'number', foreground: 'BD93F9' },
+        { token: 'string', foreground: 'F1FA8C' },
+        { token: 'variable', foreground: 'F8F8F2' },
+        { token: 'type', foreground: '8BE9FD' },
+        { token: 'function', foreground: '50FA7B' },
+        { token: 'identifier', foreground: 'F8F8F2' },
+        { token: 'delimiter', foreground: 'F8F8F2' },
+        { token: 'class', foreground: 'FFB86C' },
+        { token: 'constant', foreground: 'BD93F9' },
+        { token: 'operator', foreground: 'FF79C6' },
+      ],
+      colors: {
+        'editor.background': darkBg,
+        'editor.foreground': 'F8F8F2',
+        'editor.lineHighlightBackground': darkBgHighlight,
+        'editorCursor.foreground': 'FF79C6',
+        'editor.selectionBackground': darkSelection,
+        'editor.inactiveSelectionBackground': darkInactiveSelection,
+        'editorIndentGuide.background': darkIndentGuide,
+        'editorIndentGuide.activeBackground': darkLineNumber,
+        'editorLineNumber.foreground': darkLineNumber,
+        'editorLineNumber.activeForeground': darkLineNumberActive,
+        'editorGutter.background': darkBg,
+        'editorWhitespace.foreground': darkWhitespace,
+      },
+    });
+    monacoInstance.editor.defineTheme('gencode-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': lightBg,
+        'editor.foreground': '#232946',
+      },
+    });
+    monacoInstance.editor.setTheme(themeName === 'vs-dark' ? 'gencode-dark' : 'gencode-light');
+  };
+
+  // Apply theme on mount and on theme change
+  useEffect(() => {
+    if (editorRef.current && window.monaco) {
+      applyMonacoTheme(window.monaco, editorTheme);
+    }
+  }, [editorTheme]);
+
   const handleEditorMount = (editor, monaco) => {
     editorRef.current = editor;
+    // Set Monaco theme on mount
+    applyMonacoTheme(monaco, editorTheme);
 
     // Apply the current font size when editor mounts
     editor.updateOptions({ fontSize: currentFontSize });
@@ -186,7 +264,7 @@ const CodeEditor = ({
     if (!editorRef.current) return;
     
     const typedCode = editorRef.current.getValue() || '';
-    
+    if (setActiveTab) setActiveTab('results');
     // Call onSubmitCode if provided
     onSubmitCode?.({
       description: problemData?.description,
@@ -194,6 +272,7 @@ const CodeEditor = ({
       actualSolution: problemData?.solution,
       language: currentLanguage
     });
+    
   };
 
   const toggleAutoSuggest = () => {
@@ -281,7 +360,7 @@ const CodeEditor = ({
             </button>
             
             {isSettingsOpen && (
-              <div className="absolute z-10 top-full left-0 mt-1 bg-slate-800 border border-slate-700 rounded-md shadow-xl py-1 min-w-32">
+              <div className="absolute z-10 top-full left-0 mt-1 bg-slate-800 border border-slate-700 rounded-md shadow-xl py-1 min-w-50">
                 <div className="px-3 py-2 text-xs text-slate-400 font-semibold border-b border-slate-700">
                   Language
                 </div>
@@ -414,45 +493,128 @@ const CodeEditor = ({
         </div>
       </div>
 
-      <div className="h-full overflow-hidden">
-        <Editor
-          height={isFullscreen ? "calc(100vh - 60px)" : "100%"}
-          language={currentLanguage}
-          value={code}
-          theme={editorTheme}
-          onChange={onCodeChange}
-          onMount={handleEditorMount}
-          options={{
-            fontSize: currentFontSize,
-            minimap: { enabled: true },
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            lineNumbers: "on",
-            folding: true,
-            tabSize: 2,
-            wordWrap: "on",
-            formatOnPaste: true,
-            formatOnType: true,
-            quickSuggestions: autoSuggestEnabled,
-            suggestOnTriggerCharacters: autoSuggestEnabled,
-            acceptSuggestionOnEnter: autoSuggestEnabled ? "on" : "off",
-            tabCompletion: "on",
-            suggestSelection: "first",
-            cursorBlinking: "smooth",
-            cursorSmoothCaretAnimation: "on",
-            smoothScrolling: true,
-            contextmenu: true,
-            mouseWheelZoom: true,
-            bracketPairColorization: {
-              enabled: true
-            },
-            fontLigatures: true,
-            padding: { top: 10 }
-          }}
-        />
+      <div className="h-full overflow-hidden relative">
+  {isLangChanging && (
+  <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="bg-white/80 dark:bg-gray-900/80 border border-emerald-400 dark:border-emerald-600 rounded-2xl shadow-2xl px-8 py-7 flex flex-col items-center min-w-[260px]">
+      <div className="mb-3 flex items-center justify-center">
+        <span className="inline-block animate-spin-slow">
+  <svg className="w-10 h-10" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g filter="url(#shadow)">
+      <polygon points="24,6 42,16 24,26 6,16" fill="#34d399"/>
+      <polygon points="24,26 42,16 42,34 24,44" fill="#059669"/>
+      <polygon points="24,26 6,16 6,34 24,44" fill="#10b981"/>
+      <polygon points="24,6 42,16 24,26 6,16" fill="#6ee7b7" fillOpacity="0.5"/>
+    </g>
+    <defs>
+      <filter id="shadow" x="0" y="0" width="48" height="48" filterUnits="userSpaceOnUse">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.15"/>
+      </filter>
+    </defs>
+  </svg>
+</span>
+      </div>
+      <span className="text-gray-900 dark:text-gray-100 text-lg font-semibold tracking-wide mb-2">
+  Converting...</span>
+      <div className="w-full h-1.5 rounded bg-emerald-100 dark:bg-emerald-900 overflow-hidden">
+        <div className="h-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-300 animate-progress-bar"></div>
       </div>
     </div>
+    <style jsx>{`
+      @keyframes spin-slow {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .animate-spin-slow {
+        animation: spin-slow 1.2s linear infinite;
+      }
+      @keyframes progress-bar {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+      .animate-progress-bar {
+        animation: progress-bar 1.2s cubic-bezier(0.4,0,0.2,1) infinite;
+        width: 50%;
+      }
+    `}</style>
+  </div>
+)}
+  <Editor
+    height={isFullscreen ? "calc(100vh - 60px)" : "100%"}
+    language={currentLanguage}
+    value={code}
+    theme={editorTheme}
+    onChange={onCodeChange}
+    onMount={handleEditorMount}
+    options={{
+      fontSize: currentFontSize,
+      minimap: { enabled: true },
+      scrollBeyondLastLine: false,
+      automaticLayout: true,
+      lineNumbers: "on",
+      folding: true,
+      tabSize: 2,
+      wordWrap: "on",
+      formatOnPaste: true,
+      formatOnType: true,
+      quickSuggestions: autoSuggestEnabled,
+      suggestOnTriggerCharacters: autoSuggestEnabled,
+      acceptSuggestionOnEnter: autoSuggestEnabled ? "on" : "off",
+      tabCompletion: "on",
+      suggestSelection: "first",
+      cursorBlinking: "smooth",
+      cursorSmoothCaretAnimation: "on",
+      smoothScrolling: true,
+      contextmenu: true,
+      mouseWheelZoom: true,
+      bracketPairColorization: {
+        enabled: true
+      },
+      fontLigatures: true,
+      padding: { top: 10 }
+    }}
+  />
+</div>
+    </div>
   );
+};
+
+import PropTypes from 'prop-types';
+
+CodeEditor.propTypes = {
+  language: PropTypes.string,
+  code: PropTypes.string,
+  fontSize: PropTypes.number,
+  isFullscreen: PropTypes.bool,
+  onCodeChange: PropTypes.func,
+  onEditorMount: PropTypes.func,
+  onRunCode: PropTypes.func,
+  onToggleFullscreen: PropTypes.func,
+  setLanguage: PropTypes.func,
+  onSubmitCode: PropTypes.func,
+  problemData: PropTypes.object,
+  theme: PropTypes.string,
+  isRunning: PropTypes.bool,
+  isSubmitting: PropTypes.bool,
+  setActiveTab: PropTypes.func // <--- Added
+};
+
+CodeEditor.defaultProps = {
+  language: "javascript",
+  code: "",
+  fontSize: 14,
+  isFullscreen: false,
+  onCodeChange: null,
+  onEditorMount: null,
+  onRunCode: null,
+  onToggleFullscreen: null,
+  setLanguage: null,
+  onSubmitCode: null,
+  problemData: {},
+  theme: 'light',
+  isRunning: false,
+  isSubmitting: false,
+  setActiveTab: null // <--- Added
 };
 
 export default CodeEditor;
