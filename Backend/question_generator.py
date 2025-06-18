@@ -32,12 +32,14 @@ def generate_dsa_question(topic: str) -> dict:
     - **Input:** [Your sample input here]
     - **Output:** [Your expected output here]
     - **Explanation:** Provide a clear and concise explanation of how the sample works.
-    
+    - Try to explain visually usingmarkdown.
+
     ### Example 2
     - **Input:** [Your sample input here]
     - **Output:** [Your expected output here]
     - **Explanation:** Provide a clear and concise explanation of how the sample works.
-    
+    - Try to explain visually using markdown.
+
     ## Test Cases
     
     ### Test Case 1

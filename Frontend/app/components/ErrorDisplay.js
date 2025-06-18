@@ -176,7 +176,7 @@ export default function RetroMaintenancePage() {
             marginTop: '3rem' 
           }}
         >
-          We'll be back shortly!
+          We&apos;ll be back shortly!
         </div>
 
         {/* Retro Gaming Elements */}
