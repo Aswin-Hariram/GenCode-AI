@@ -40,16 +40,10 @@ const ProblemDescription = ({ problemData, activeTab, response, status, theme })
     if (textToCopy) {
       navigator.clipboard.writeText(textToCopy).then(() => {
         setCopied(true);
-        startAnimation();
       }).catch(err => {
         console.error('Failed to copy text: ', err);
       });
     }
-  };
-
-  const startAnimation = () => {
-    setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 500);
   };
 
   const renderDifficulty = (difficulty) => {
@@ -100,7 +94,7 @@ const ProblemDescription = ({ problemData, activeTab, response, status, theme })
       {selectedText && renderFloatingCopyButton()}
       
       {/* Notification for successful copy */}
-      <div className={`fixed bottom-4 right-4 bg-black bg-opacity-80 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-opacity ${copied ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`fixed bottom-4 right-4 bg-black bg-opacity-80 text-white px-4 py-2 rounded-md flex items-center gap-2 ${copied ? 'animate-fadeIn opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <Check size={16} />
         <span>Copied to clipboard!</span>
       </div>

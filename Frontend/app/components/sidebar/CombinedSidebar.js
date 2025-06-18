@@ -3,7 +3,21 @@
 import { useEffect, useState, useCallback } from 'react';
 import { FiBook, FiClock, FiRotateCw, FiX, FiAlertCircle, FiSearch } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+
+// Utility hook: returns a debounced copy of the supplied value
+function useDebounce(value, delay = 300) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 import { useSidebar } from '../../context/SidebarContext';
+import { useTheme } from '../../context/ThemeContext';
+
 
 const CombinedSidebar = () => {
   const { isSidebarOpen, closeSidebar } = useSidebar();
@@ -13,6 +27,8 @@ const CombinedSidebar = () => {
   const [filteredRecentTopics, setFilteredRecentTopics] = useState([]);
   const [filteredAllTopics, setFilteredAllTopics] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  // Debounced version avoids triggering expensive filters on every key-stroke
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [availableCategories, setAvailableCategories] = useState(new Set());
@@ -25,107 +41,32 @@ const CombinedSidebar = () => {
     recent: null,
     all: null
   });
-  const [currentTheme, setCurrentTheme] = useState('light');
+  const { theme: currentTheme, toggleTheme } = useTheme();
   const [sidebarWidth, setSidebarWidth] = useState(400);
+  const TOPICS_BATCH_SIZE = 10;
+  const [hasMoreAllTopics, setHasMoreAllTopics] = useState(true);
   const [isResizing, setIsResizing] = useState(false);
 
-  // Set theme on mount and listen for changes
-  useEffect(() => {
-    // Initial theme setup
-    const initialTheme = localStorage.getItem('theme') || 'light';
-    setCurrentTheme(initialTheme);
-    
-    // Function to update theme when it changes
-    const handleThemeChange = (e) => {
-      const newTheme = e?.detail?.theme || localStorage.getItem('theme') || 'light';
-      setCurrentTheme(newTheme);
-    };
-    
-    // Listen for both custom event and storage events
-    window.addEventListener('themeChanged', handleThemeChange);
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'theme') {
-        handleThemeChange({ detail: { theme: e.newValue || 'light' } });
-      }
+  // Helper function to fetch data
+  const fetcher = useCallback(async (url, options = {}) => {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        ...options.headers,
+      },
     });
-    
-    // Check for theme changes every 100ms (fallback)
-    let lastTheme = initialTheme;
-    const themeCheckInterval = setInterval(() => {
-      const currentTheme = localStorage.getItem('theme') || 'light';
-      if (currentTheme !== lastTheme) {
-        lastTheme = currentTheme;
-        setCurrentTheme(currentTheme);
-      }
-    }, 100);
-    
-    return () => {
-      window.removeEventListener('themeChanged', handleThemeChange);
-      window.removeEventListener('storage', handleThemeChange);
-      clearInterval(themeCheckInterval);
-    };
-  }, []);
 
-  // Helper function to fetch with retry and resource management
-  const fetchWithRetry = useCallback(async (url, options = {}, retries = 3, backoff = 300) => {
-    let controller = null;
-    let timeoutId = null;
-    
-    try {
-      // Create new controller and timeout for each attempt
-      controller = new AbortController();
-      timeoutId = setTimeout(() => {
-        controller?.abort(new Error('Request timeout'));
-      }, 10000); // 10 second timeout
-      
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          ...options.headers,
-        },
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const error = new Error(`HTTP error! status: ${response.status}`);
-        error.status = response.status;
-        throw error;
-      }
-      
-      const data = await response.json();
-      
-      // Explicitly clean up
-      controller = null;
-      timeoutId = null;
-      
-      return data;
-      
-    } catch (error) {
-      // Clean up resources
-      if (timeoutId) clearTimeout(timeoutId);
-      controller = null;
-      
-      // Don't retry for certain status codes
-      if (error.status && [400, 401, 403, 404, 429].includes(error.status)) {
-        throw error;
-      }
-      
-      // Only retry for network errors or server errors
-      if (retries > 0) {
-        // Add jitter to prevent thundering herd
-        const jitter = Math.floor(Math.random() * 100);
-        await new Promise(resolve => setTimeout(resolve, backoff + jitter));
-        return fetchWithRetry(url, options, retries - 1, Math.min(backoff * 2, 10000)); // Cap max backoff at 10s
-      }
-      
+    if (!response.ok) {
+      const error = new Error(`HTTP error! status: ${response.status}`);
+      error.status = response.status;
       throw error;
     }
-  }, []); // Empty dependency array as this function is stable
+
+    return response.json();
+  }, []);
 
   // --- Sidebar Resizing Logic ---
   const handleResizeMouseDown = (e) => {
@@ -186,7 +127,7 @@ const CombinedSidebar = () => {
       }
       
       try {
-        const result = await fetchWithRetry(
+        const result = await fetcher(
           `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/recent-topics`,
           { cache: 'no-store' }
         );
@@ -220,7 +161,7 @@ const CombinedSidebar = () => {
     return () => {
       isMounted = false;
     };
-  }, [isSidebarOpen, view, fetchWithRetry]);
+  }, [isSidebarOpen, view, fetcher]);
 
   // Fetch all topics
   useEffect(() => {
@@ -234,8 +175,8 @@ const CombinedSidebar = () => {
       }
       
       try {
-        const result = await fetchWithRetry(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/all-topics`,
+        const result = await fetcher(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/all-topics?limit=${TOPICS_BATCH_SIZE}&offset=0`,
           { cache: 'no-store' }
         );
         
@@ -243,6 +184,7 @@ const CombinedSidebar = () => {
           if (result && result.success && Array.isArray(result.data)) {
             setAllTopics(result.data);
             setFilteredAllTopics(result.data);
+            setHasMoreAllTopics(result.data.length === TOPICS_BATCH_SIZE);
             setError(prev => ({ ...prev, all: null }));
           } else {
             throw new Error('Invalid response format from server');
@@ -256,6 +198,7 @@ const CombinedSidebar = () => {
             all: 'Failed to load topics. Please try again later.'
           }));
           setAllTopics([]);
+          setHasMoreAllTopics(false);
           setFilteredAllTopics([]);
         }
       } finally {
@@ -270,7 +213,7 @@ const CombinedSidebar = () => {
     return () => {
       isMounted = false;
     };
-  }, [isSidebarOpen, view, fetchWithRetry]);
+  }, [isSidebarOpen, view, fetcher]);
 
   // Set default categories and extract unique categories/difficulties when data loads
   useEffect(() => {
@@ -313,9 +256,9 @@ const CombinedSidebar = () => {
   // Filter all topics based on search query and filters
   useEffect(() => {
     const filtered = allTopics.filter(topic => {
-      const matchesSearch = searchQuery === '' || 
-        topic.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (topic.category && topic.category.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesSearch = debouncedSearchQuery === '' || 
+        topic.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        (topic.category && topic.category.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
       
       const matchesCategory = categoryFilter === 'all' || 
         (topic.category && topic.category.toLowerCase() === categoryFilter.toLowerCase());
@@ -327,14 +270,14 @@ const CombinedSidebar = () => {
     });
     
     setFilteredAllTopics(filtered);
-  }, [searchQuery, allTopics, categoryFilter, difficultyFilter]);
+  }, [debouncedSearchQuery, allTopics, categoryFilter, difficultyFilter]);
 
   // Filter recent topics based on search query and filters
   useEffect(() => {
     const filtered = recentTopics.filter(topic => {
-      const matchesSearch = searchQuery === '' || 
-        topic.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (topic.category && topic.category.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesSearch = debouncedSearchQuery === '' || 
+        topic.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        (topic.category && topic.category.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
       
       const matchesCategory = categoryFilter === 'all' || 
         (topic.category && topic.category.toLowerCase() === categoryFilter.toLowerCase());
@@ -346,7 +289,7 @@ const CombinedSidebar = () => {
     });
     
     setFilteredRecentTopics(filtered);
-  }, [searchQuery, recentTopics, categoryFilter, difficultyFilter]);
+  }, [debouncedSearchQuery, recentTopics, categoryFilter, difficultyFilter]);
 
   const resetFilters = () => {
     setSearchQuery('');
@@ -361,6 +304,40 @@ const CombinedSidebar = () => {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
+
+  // Load more topics on demand (infinite scroll)
+  const loadMoreAllTopics = useCallback(async () => {
+    if (isLoading.all || !hasMoreAllTopics) return;
+
+    const nextOffset = allTopics.length;
+    try {
+      setIsLoading(prev => ({ ...prev, all: true }));
+      const result = await fetcher(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/all-topics?limit=${TOPICS_BATCH_SIZE}&offset=${nextOffset}`,
+        { cache: 'no-store' }
+      );
+
+      if (result && result.success && Array.isArray(result.data)) {
+        setAllTopics(prev => [...prev, ...result.data]);
+        setHasMoreAllTopics(result.data.length === TOPICS_BATCH_SIZE);
+        setError(prev => ({ ...prev, all: null }));
+      } else {
+        setHasMoreAllTopics(false);
+      }
+    } catch (err) {
+      console.error('Failed to load more topics:', err);
+      setHasMoreAllTopics(false);
+    } finally {
+      setIsLoading(prev => ({ ...prev, all: false }));
+    }
+  }, [isLoading, hasMoreAllTopics, allTopics, fetcher]);
+
+  const handleContentScroll = useCallback((e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollHeight - scrollTop <= clientHeight + 150) {
+      loadMoreAllTopics();
+    }
+  }, [loadMoreAllTopics]);
 
   // Helper function to get difficulty badge styles
   const getDifficultyStyles = (difficulty) => {
@@ -441,6 +418,7 @@ const CombinedSidebar = () => {
   const currentError = error[view];
   const topicsToShow = view === 'recent' ? filteredRecentTopics : filteredAllTopics;
   const isEmpty = topicsToShow.length === 0;
+  const showFullLoader = currentIsLoading && isEmpty;
   const hasActiveFilters = searchQuery !== '' || categoryFilter !== 'all' || difficultyFilter !== 'all';
 
   return (
@@ -683,8 +661,8 @@ const CombinedSidebar = () => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          {currentIsLoading ? (
+        <div className="flex-1 overflow-y-auto px-6 py-5" onScroll={view === 'all' ? handleContentScroll : undefined}>
+          {showFullLoader ? (
             <div className="flex flex-col items-center justify-center h-64">
               <div className="relative">
                 <FiRotateCw className={`animate-spin w-8 h-8 mb-4 ${
@@ -821,6 +799,11 @@ const CombinedSidebar = () => {
                   </div>
                 </motion.div>
               ))}
+              {currentIsLoading && !isEmpty && (
+                <div className="flex justify-center py-4">
+                  <FiRotateCw className={`animate-spin w-6 h-6 ${currentTheme === 'dark' ? 'text-blue-400' : 'text-blue-500'}`} />
+                </div>
+              )}
             </div>
           )}
         </div>

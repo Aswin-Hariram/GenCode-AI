@@ -230,15 +230,22 @@ def changeLanguage():
 def get_dsa_question():
     """Generate a DSA question based on the provided topic or a random one if not specified."""
     try:
-        # Get topic from query parameter or get a random one if not provided
-        topic = request.args.get('topic')
-        if not topic:
-            topic = get_random_topic()
-            if not topic:
-                # No topics found in Firestore
-                return jsonify({
-                    'error': 'No topics available. Please add topics first.'
-                }), 404
+        from firebase_service import FirebaseService
+        FirebaseService.initialize()
+
+        # Get topic from query parameter
+        topic_name = request.args.get('topic')
+
+        if topic_name:
+            # If a topic is provided, track its usage
+            FirebaseService.track_topic_usage(topic_name)
+            topic = topic_name
+        else:
+            # If no topic is provided, get a random one, excluding recent topics
+            topic_details = FirebaseService.get_random_topic()
+            if not topic_details:
+                return jsonify({'error': 'No topics available.'}), 404
+            topic = topic_details['name']
         
         # Generate DSA question using the selected topic
         result = generate_dsa_question(topic)
@@ -530,28 +537,66 @@ def log_error(message, print_to_console=True):
 @app.route('/api/all-topics', methods=['GET'])
 def api_all_topics():
     """
-    API endpoint to get all topics in JSON format
-    
-    Returns:
-        JSON response with list of topics or error message
+    Optimised endpoint returning a paginated list of all topics.
+
+    Query-params:
+        limit (int, default=10, min=1, max=100)
+        offset (int, default=0, min=0)
+
+    Response:
         {
-            'success': bool,
-            'data': [
-                {
-                    'id': str,
-                    'name': str,
-                    'category': str,
-                    'last_used': str
-                }
-            ]
+            "success": bool,
+            "data": [ { id, name, category, difficulty } ]
         }
     """
-    print("\n" + "="*80, flush=True)
-    print("STARTING /api/all-topics ENDPOINT", flush=True)
+    # Sanitise pagination params
+    limit = request.args.get('limit', default=10, type=int)
+    offset = request.args.get('offset', default=0, type=int)
+    limit = min(max(limit, 1), 100)
+    offset = max(offset, 0)
+
+    try:
+        # Re-use the singleton Firestore client managed by FirebaseService
+        topics = FirebaseService.get_all_topics()
+    except Exception as exc:
+        logger.exception("Failed to fetch topics from Firestore")
+        return jsonify({
+            "success": False,
+            "error": "Failed to fetch topics from Firestore",
+            "details": str(exc)
+        }), 500
+
+    if not topics:
+        return jsonify({"success": False, "error": "No topics found", "data": []}), 404
+
+    # Sort alphabetically for stable pagination
+    topics.sort(key=lambda t: t['name'])
+    paginated = topics[offset: offset + limit]
+
+    formatted = [{
+        "id": str(i + offset + 1),
+        "name": t['name'].replace(' ', '_').lower().strip('_'),
+        "category": t.get('category', 'Uncategorized'),
+        "difficulty": t.get('difficulty', 'medium')
+    } for i, t in enumerate(paginated)]
+
+    return jsonify({"success": True, "data": formatted})
     
     try:
         print(f"\n[DEBUG] Python path: {sys.path}", flush=True)
         print(f"[DEBUG] Current working directory: {os.getcwd()}", flush=True)
+        
+        # Pagination parameters from query string
+        limit = request.args.get('limit', default=10, type=int)
+        offset = request.args.get('offset', default=0, type=int)
+        # Sanitize values
+        if limit < 1:
+            limit = 1
+        if limit > 100:
+            limit = 10  # hard-cap to prevent excessive reads
+        if offset < 0:
+            offset = 0
+
         
         # Import required Firebase modules
         try:
@@ -635,7 +680,9 @@ def api_all_topics():
             try:
                 print(f"[DEBUG] Fetching topics from '{collection_name}' collection...", flush=True)
                 topics_ref = db.collection(collection_name)
-                docs = list(topics_ref.limit(100).stream())  # Limit to 100 documents to avoid timeout
+                docs = list(
+                    topics_ref.offset(offset).limit(limit).stream()
+                )
                 
                 print(f"[DEBUG] Found {len(docs)} documents in '{collection_name}' collection", flush=True)
                 
@@ -666,7 +713,7 @@ def api_all_topics():
                 # Format the response
                 print("\n[DEBUG] Formatting topics...", flush=True)
                 formatted_topics = []
-                for i, topic in enumerate(topics, 1):
+                for i, topic in enumerate(topics, offset + 1):
                     try:
                         # Ensure we have a valid topic name
                         if not topic or not isinstance(topic, dict):

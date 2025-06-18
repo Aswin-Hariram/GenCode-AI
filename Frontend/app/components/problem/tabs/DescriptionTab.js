@@ -5,8 +5,10 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import { Layers, FileText } from "lucide-react";
 import { getMarkdownComponents } from "../markdown/MarkdownComponents";
+import { useTheme } from "../../../context/ThemeContext";
 
-const DescriptionTab = ({ problemData, theme  }) => {
+const DescriptionTab = ({ problemData }) => {
+  const {theme} = useTheme();
   const markdownComponents = getMarkdownComponents(theme);
   
   return (

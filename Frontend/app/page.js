@@ -11,20 +11,13 @@ import LoadingSpinner from './components/LoadingSpinner';
 import ErrorDisplay from './components/ErrorDisplay';
 import { useProblemData } from './hooks/useProblemData';
 import { INITIAL_CODE } from './utils/constants';
+import { useTheme } from './context/ThemeContext';
 
 const GenCode = () => {
   // State management
+  const {theme, toggleTheme} = useTheme();
   const [code, setCode] = useState(INITIAL_CODE);
   const [activeTab, setActiveTab] = useState('description');
-  const [theme, setTheme] = useState('light');
-  
-  // Load theme from localStorage on client-side only
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
-  }, []);
   const [language, setLanguage] = useState('cpp');
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -150,12 +143,7 @@ const GenCode = () => {
   // Toggle functions
   const toggleConsole = () => setIsConsoleOpen(!isConsoleOpen);
   const toggleFullscreen = () => setIsFullscreen(prevState => !prevState);
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    // Save theme preference to localStorage
-    localStorage.setItem('theme', newTheme);
-  };
+
   const closeConsole = () => setIsConsoleOpen(false);
 
   
@@ -316,7 +304,7 @@ const GenCode = () => {
   };
 
   if (isLoadingState) {
-    return <LoadingSpinner theme={theme} />;
+    return <LoadingSpinner />;
   }
 
   if (errorState) {
@@ -403,38 +391,7 @@ const GenCode = () => {
             isRunning={isRunning}
             isSubmitting={isSubmitting}
           />
-          {isConsoleOpen && compilationResult && (
-            <div className={`p-4 border-t shadow-inner transition-colors duration-300 ${
-              theme === 'dark' 
-                ? 'bg-gray-800 border-gray-700 text-gray-100' 
-                : 'bg-white border-gray-200 text-gray-800'
-            }`}>
-              <div className="flex justify-between items-center mb-2">
-                <div className={`font-semibold ${
-                  compilationResult.result === 'Compilation Success' 
-                    ? 'text-green-500' 
-                    : 'text-red-500'
-                }`}>
-                  {compilationResult.result}
-                </div>
-                <button 
-                  onClick={closeConsole}
-                  className={`p-1 rounded-full ${
-                    theme === 'dark' 
-                      ? 'hover:bg-gray-700 text-gray-400' 
-                      : 'hover:bg-gray-200 text-gray-600'
-                  }`}
-                >
-                  <FiX size={18} />
-                </button>
-              </div>
-              <pre className={`whitespace-pre-wrap ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                {compilationResult.message}
-              </pre>
-            </div>
-          )}
+          
         </div>
       </Split>
       <ConsoleModal

@@ -3,6 +3,7 @@
 import { Inter } from 'next/font/google';
 import { SidebarProvider } from './context/SidebarContext';
 import CombinedSidebar from './components/sidebar/CombinedSidebar';
+import { ThemeProvider } from './context/ThemeContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,10 +23,12 @@ export default function ClientLayout({ children }) {
         `}</style>
       </head>
       <body className="antialiased">
-        <SidebarProvider>
-          {children}
-          <CombinedSidebar />
-        </SidebarProvider>
+        <ThemeProvider>
+          <SidebarProvider>
+            {children}
+            <CombinedSidebar />
+          </SidebarProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

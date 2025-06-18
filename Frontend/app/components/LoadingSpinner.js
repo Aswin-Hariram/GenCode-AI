@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
 
 const loadingTexts = [
   "Initializing AI Model...",
@@ -8,9 +9,15 @@ const loadingTexts = [
   "Finalizing Environment..."
 ];
 
-export default function LoadingSpinner({ theme = 'light' }) {
+export default function LoadingSpinner() {
+  const { theme } = useTheme();
   const [text, setText] = useState('');
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     localStorage.removeItem("editor-lang");
@@ -45,6 +52,9 @@ export default function LoadingSpinner({ theme = 'light' }) {
     return () => clearInterval(typingInterval);
   }, [currentTextIndex]);
 
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <div className={`flex flex-col items-center justify-center h-screen ${theme === 'dark' ? 'bg-gray-900 text-gray-200' : 'bg-gray-100 text-gray-800'} transition-colors duration-300 font-mono`}>
@@ -69,7 +79,7 @@ export default function LoadingSpinner({ theme = 'light' }) {
           </div>
         </div>
       </div>
-       <p className={`mt-6 text-md font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>GenCode AI is thinking...</p>
+       <p className={`mt-6 text-md font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Transforming Code into Intelligent Conversations.</p>
       <footer className={`absolute bottom-4 text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
         Designed and Developed By Aswin Hariram
       </footer>
