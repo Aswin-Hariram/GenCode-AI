@@ -24,11 +24,13 @@
     ]
   },
   "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "app/context/ThemeContext.js",
     "next-env.d.ts",
     "out/types/**/*.ts",
-    "**/*.ts",
-    "**/*.tsx"
-, "app/context/ThemeContext.js"  ],
+    ".next/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]

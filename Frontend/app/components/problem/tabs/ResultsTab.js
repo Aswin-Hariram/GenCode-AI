@@ -9,20 +9,22 @@ import SkeletonLoader from './SkeletonLoader';
 import React, { useMemo } from 'react';
 
 // Enhanced loader with animated cube, floating code, and random tip
+// Tips/fun facts
+const tips = [
+  "You can use // TODO comments to mark ideas for later!",
+  "Try submitting in multiple languages for deeper learning.",
+  "GenCode AI never sleeps – submit as many times as you want!",
+  "Did you know? The first computer bug was a real moth.",
+  "Break big problems into small functions for clarity.",
+  "Use meaningful variable names for readable code.",
+  "Practice makes progress, not perfection!",
+  "GenCode can help you learn new algorithms, not just solve problems.",
+  "Stuck? Try explaining your code to a rubber duck (or GenCode!).",
+  "The best way to learn is to experiment fearlessly!"
+];
+
+// Enhanced loader with animated cube, floating code, and random tip
 const EnhancedGenCodeLoader = ({ theme }) => {
-  // Tips/fun facts
-  const tips = [
-    "You can use // TODO comments to mark ideas for later!",
-    "Try submitting in multiple languages for deeper learning.",
-    "GenCode AI never sleeps – submit as many times as you want!",
-    "Did you know? The first computer bug was a real moth.",
-    "Break big problems into small functions for clarity.",
-    "Use meaningful variable names for readable code.",
-    "Practice makes progress, not perfection!",
-    "GenCode can help you learn new algorithms, not just solve problems.",
-    "Stuck? Try explaining your code to a rubber duck (or GenCode!).",
-    "The best way to learn is to experiment fearlessly!"
-  ];
   // Pick a random tip on each mount
   const randomTip = useMemo(() => tips[Math.floor(Math.random() * tips.length)], []);
 
@@ -132,7 +134,7 @@ const EnhancedGenCodeLoader = ({ theme }) => {
       {/* GenCode card */}
       <div className={`max-w-lg w-full rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-3 border-2 ${theme === 'dark' ? 'bg-gray-900/80 border-blue-900' : 'bg-white/90 border-blue-200'}`}>
         <div className={`text-lg font-mono font-semibold tracking-wide uppercase ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>Building your solution...</div>
-        <div className={`text-base text-center ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>GenCode's AI is assembling logic blocks, optimizing creativity, and preparing a unique answer just for you.</div>
+        <div className={`text-base text-center ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>GenCode&apos;s AI is assembling logic blocks, optimizing creativity, and preparing a unique answer just for you.</div>
         <div className={`flex items-center gap-2 mt-2`}>
           <span className={`inline-block w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-blue-400' : 'bg-blue-600'} animate-pulse`}></span>
           <span className={`inline-block w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-indigo-400' : 'bg-indigo-600'} animate-pulse delay-150`}></span>

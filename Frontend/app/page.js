@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Split from 'react-split';
 import { FiSun, FiMoon, FiX, FiFileText, FiCode, FiBarChart2 } from 'react-icons/fi';
 import ProblemHeader from './components/problem/ProblemHeader';
@@ -46,7 +46,7 @@ const GenCode = () => {
   const DEFAULT_LANGUAGE = 'cpp';
 
   // Function to fetch a new question for a specific topic
-  const fetchQuestionForTopic = async (topic) => {
+  const fetchQuestionForTopic = useCallback(async (topic) => {
     try {
       setIsLoadingState(true);
       setErrorState(null);
@@ -91,7 +91,7 @@ const GenCode = () => {
     } finally {
       setIsLoadingState(false);
     }
-  };
+  }, [setProblemData, setCode, setIsLoadingState, setErrorState, setActiveTab]);
 
   // Set up event listeners for custom events
   useEffect(() => {
@@ -112,11 +112,9 @@ const GenCode = () => {
       setIsLoadingState(false);
     };
     
-    const handleRegenerateQuestion = async (event) => {
+    const handleRegenerateQuestion = (event) => {
       const { topic } = event.detail;
-      if (topic) {
-        await fetchQuestionForTopic(topic);
-      }
+      fetchQuestionForTopic(topic);
     };
     
     // Add event listeners
@@ -132,7 +130,14 @@ const GenCode = () => {
       window.removeEventListener('showError', handleShowError);
       window.removeEventListener('regenerateQuestion', handleRegenerateQuestion);
     };
-  }, [setProblemData]);
+  }, [setProblemData, fetchQuestionForTopic]);
+
+  // Fetch initial question when the component mounts
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const topic = urlParams.get('topic') || 'arrays';
+    fetchQuestionForTopic(topic);
+  }, [fetchQuestionForTopic]);
 
   const tabs = [
     { id: 'description', label: 'Description', icon: <FiFileText className="mr-2" size={18} /> },
