@@ -39,15 +39,9 @@ Markdown Format is as follows:
 
 
 ## 2. 🧩 Logical Correctness
-[Note] should be in short points and concise and attractive and easy to understand. 
-    ### Logical Mistakes [show this if logic is not correct]:
-        - List the logic mistakes in short points and concise and attractive and easy to understand.
-    - **Objective**: Validate problem-solving approach
-    - **Metrics**:
-      - Mention logic mismatch if any in bold
-      - Algorithm efficiency
-      - Edge case handling
-  - Alignment with problem requirements
+Logical Mistakes [show this if logic is not correct]:
+    - List the logic mistakes in short points and concise and attractive and easy to understand.
+    
 
 
 ## 3. 🧪 Test Case Performance

@@ -16,7 +16,7 @@ import Editor from "@monaco-editor/react";
 const CodeEditor = ({
   language = "javascript",
   code = "",
-  fontSize: initialFontSize = 14,
+  fontSize: initialFontSize = 16,
   isFullscreen = false,
   onCodeChange,
   onEditorMount,
@@ -64,7 +64,36 @@ const CodeEditor = ({
     return storedTheme || 'vs-dark';
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [currentFontSize, setCurrentFontSize] = useState(initialFontSize);
+const settingsRef = useRef(null);
+const settingsButtonRef = useRef(null);
+
+// Close settings dropdown on outside click
+useEffect(() => {
+  if (!isSettingsOpen) return;
+  function handleClickOutside(event) {
+    if (
+      settingsRef.current &&
+      !settingsRef.current.contains(event.target) &&
+      settingsButtonRef.current &&
+      !settingsButtonRef.current.contains(event.target)
+    ) {
+      setIsSettingsOpen(false);
+    }
+  }
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => document.removeEventListener('mousedown', handleClickOutside);
+}, [isSettingsOpen]);
+  const [currentFontSize, setCurrentFontSize] = useState(() => {
+    // Try to load from localStorage, but enforce minimum of 16
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('editor-font');
+      if (stored) {
+        const parsed = parseInt(stored, 10);
+        if (!isNaN(parsed)) return Math.max(parsed, 16);
+      }
+    }
+    return initialFontSize;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isLangChanging, setIsLangChanging] = useState(false);
 
@@ -221,7 +250,7 @@ const CodeEditor = ({
 
     // Apply the current font size and font family when editor mounts
     editor.updateOptions({ 
-      fontSize: currentFontSize > 18 ? currentFontSize : 18,
+      fontSize: currentFontSize,
       fontFamily: 'Urbanist, var(--font-sans), system-ui, -apple-system, sans-serif'
     });
 
@@ -351,6 +380,7 @@ const CodeEditor = ({
         <div className="flex items-center space-x-4">
           <div className="relative">
             <button 
+              ref={settingsButtonRef}
               className="flex items-center bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-md text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => !isLangChanging && setIsSettingsOpen(!isSettingsOpen)}
               aria-expanded={isSettingsOpen}
@@ -367,7 +397,7 @@ const CodeEditor = ({
             </button>
             
             {isSettingsOpen && (
-              <div className="absolute z-10 top-full left-0 mt-1 bg-slate-800 border border-slate-700 rounded-md shadow-xl py-1 min-w-50">
+              <div ref={settingsRef} className="absolute z-10 top-full left-0 mt-1 bg-slate-800 border border-slate-700 rounded-md shadow-xl py-1 min-w-50">
                 <div className="px-3 py-2 text-xs text-slate-400 font-semibold border-b border-slate-700">
                   Language
                 </div>
@@ -555,7 +585,7 @@ const CodeEditor = ({
     onMount={handleEditorMount}
     options={{
       fontFamily: 'Urbanist, var(--font-sans), system-ui, -apple-system, sans-serif',
-      fontSize: currentFontSize > 18 ? currentFontSize : 18,
+      fontSize: currentFontSize,
       minimap: { enabled: true },
       scrollBeyondLastLine: false,
       automaticLayout: true,
