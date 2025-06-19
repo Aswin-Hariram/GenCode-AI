@@ -219,8 +219,11 @@ const CodeEditor = ({
     // Set Monaco theme on mount
     applyMonacoTheme(monaco, editorTheme);
 
-    // Apply the current font size when editor mounts
-    editor.updateOptions({ fontSize: currentFontSize });
+    // Apply the current font size and font family when editor mounts
+    editor.updateOptions({ 
+      fontSize: currentFontSize > 18 ? currentFontSize : 18,
+      fontFamily: 'Urbanist, var(--font-sans), system-ui, -apple-system, sans-serif'
+    });
 
     // Save font size changes
     editor.onDidChangeConfiguration(() => {
@@ -551,7 +554,8 @@ const CodeEditor = ({
     onChange={onCodeChange}
     onMount={handleEditorMount}
     options={{
-      fontSize: currentFontSize,
+      fontFamily: 'Urbanist, var(--font-sans), system-ui, -apple-system, sans-serif',
+      fontSize: currentFontSize > 18 ? currentFontSize : 18,
       minimap: { enabled: true },
       scrollBeyondLastLine: false,
       automaticLayout: true,
@@ -606,7 +610,7 @@ CodeEditor.propTypes = {
 CodeEditor.defaultProps = {
   language: "javascript",
   code: "",
-  fontSize: 14,
+  fontSize: 18,
   isFullscreen: false,
   onCodeChange: null,
   onEditorMount: null,

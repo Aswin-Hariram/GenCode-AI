@@ -156,7 +156,7 @@ const ResultsTab = ({ response, status, theme = 'light', isLoading = false }) =>
     const isError = response?.includes('#NO ACTUAL LOGIC FOUND') || status?.includes('Not Accepted') || status?.includes('Partially Accepted');
   const markdownComponents = getMarkdownComponents(theme);
   return (
-    <div className="animate-fadeIn space-y-6 p-6" style={{ fontFamily: 'Urbanist, sans-serif' }}>
+    <div className="animate-fadeIn space-y-6 p-6 font-urbanist">
       {isLoading ? (
         <EnhancedGenCodeLoader theme={theme} />
       ) : !response ? (
