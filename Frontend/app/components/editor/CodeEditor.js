@@ -182,9 +182,9 @@ const CodeEditor = ({
       ],
       colors: {
         'editor.background': darkBg,
-        'editor.foreground': 'F8F8F2',
+        'editor.foreground': '#F8F8F2',
         'editor.lineHighlightBackground': darkBgHighlight,
-        'editorCursor.foreground': 'FF79C6',
+        'editorCursor.foreground': '#FF79C6',
         'editor.selectionBackground': darkSelection,
         'editor.inactiveSelectionBackground': darkInactiveSelection,
         'editorIndentGuide.background': darkIndentGuide,
