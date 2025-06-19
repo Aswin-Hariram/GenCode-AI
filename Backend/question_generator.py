@@ -16,8 +16,9 @@ def generate_dsa_question(topic: str) -> dict:
     Title: [Insert Title Here]
 
     # Problem Statement
-    [Insert a real-world inspired problem statement.]
-    
+    [Insert a real-world inspired problem statement without revealing actual leetcode topic either directly or indirectly in the problem statement.]
+    [IMPORTANT: Dont reveal leetcode topic in initial code and solution]
+
     ## Input
     - Describe the input format clearly.
     
@@ -64,6 +65,7 @@ def generate_dsa_question(topic: str) -> dict:
     ```cpp
      🧩 Initial Problem-Solving Template
     Objectives:
+    - Dont reveal leetcode topic in initial code and solution
     - Create a structured skeleton for the solution
     - Implement a basic main() function with sample test cases
     - Include function signatures with clear parameter and return types
@@ -76,6 +78,7 @@ def generate_dsa_question(topic: str) -> dict:
 
     ## Solution
     ```cpp
+    - Dont reveal leetcode topic in initial code and solution
     - CPP code
     🏆 Optimal Solution Strategy
     - Implement a clean, efficient, and production-ready solution 

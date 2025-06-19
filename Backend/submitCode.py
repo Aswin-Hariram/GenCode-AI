@@ -39,17 +39,18 @@ Markdown Format is as follows:
 
 
 ## 2. 🧩 Logical Correctness
-Logical Mistakes [show this if logic is not correct]:
-    - List the logic mistakes in short points and concise and attractive and easy to understand.
-    
-
+Logical Mistakes: [show this if implemented logic is not correct]
+    - List the logical mistakes in short points and concise and attractive and easy to understand.
+Logical Strengths: [show this if implemented logic is correct]
+    - List the logical strengths in short points and concise and attractive and easy to understand.
 
 ## 3. 🧪 Test Case Performance
 Should only in tabluar form.
+Must test with valid test cases for the corresponding problem description.
 Ignore values in main function and pass test case value for testing.
 Should run the program with corresponding test case values which should be valid for that corresponding problem description.
 Incase the testcase result is pending/varies for all consider as ok
-Note - Nedd atleast 30 test cases for checking the code is well optimized or not.
+Note - Need atleast 30 test cases for checking the code is well optimized or not.
 
 | Test ID | Category    | Input Level          | Input Value         | Expected Output     | Your Output         | Status |
 |--------|-------------|----------------------|---------------------|----------------------|----------------------|--------|
