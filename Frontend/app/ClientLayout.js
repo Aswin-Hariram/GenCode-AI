@@ -13,6 +13,8 @@ export default function ClientLayout({ children }) {
       <head>
         <link rel="preconnect" href="https://rsms.me/" />
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+        {/* Urbanist font for all environments */}
+        <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&display=swap" rel="stylesheet" />
         <style jsx global>{`
           :root {
             --font-inter: 'Inter', sans-serif;
