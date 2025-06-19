@@ -1,6 +1,6 @@
 "use client";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -114,9 +114,9 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
   ];
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-urbanist">
       <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
-        theme === 'dark' ? 'bg-gray-800/50' : 'bg-slate-100/50'
+        theme === 'dark' ? 'bg-gray-700/50' : 'bg-slate-100/50'
       }`}>
         <h3 className={`text-2xl font-bold mb-5 ${ 
           theme === 'dark' ? 'text-blue-300' : 'text-blue-600' 
@@ -203,19 +203,25 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
               ) : (
                 <SyntaxHighlighter
                   language={selectedLanguage}
-                  style={theme === 'dark' ? oneDark : oneLight}
-                  customStyle={{ 
-                    background: 'transparent',
-                    fontSize: '14px',
+                  style={theme === 'dark' ? vscDarkPlus : vs}
+                  customStyle={{
+                    background: theme === 'dark' ? '#181C24' : '#f3f6fa',
+                    fontSize: '1rem',
                     borderRadius: '0.75rem',
-                    padding: '0'
+                    padding: '1rem',
+                    fontFamily: 'Urbanist, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                    color: theme === 'dark' ? '#e5e7eb' : '#1e293b',
+                    boxShadow: theme === 'dark' ? '0 2px 12px 0 #0002' : '0 2px 12px 0 #0001',
+                    userSelect: 'text',
                   }}
-                  codeTagProps={{ 
-                    style: { 
-                      fontFamily: 'var(--font-geist-mono)',
+                  codeTagProps={{
+                    style: {
+                      fontFamily: 'Urbanist, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                      fontWeight: 600,
+                      letterSpacing: '0.015em',
                     }
                   }}
-                  className="!bg-transparent"
+                  className="!bg-transparent font-urbanist"
                 >
                   {convertedCode}
                 </SyntaxHighlighter>
