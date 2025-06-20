@@ -5,7 +5,7 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 
 const SolutionMeta = ({ markdown, markdownComponents, theme }) => (
-  <div className={`mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+  <div className={`mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} markdown-body`}>
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       rehypePlugins={[rehypeRaw, rehypeSanitize]}

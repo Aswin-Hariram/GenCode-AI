@@ -11,7 +11,7 @@ const DescriptionMarkdown = ({ description }) => {
   const markdownComponents = getMarkdownComponents(theme);
   return (
     <div
-      className={`prose prose-blue dark:prose-invert transition-all duration-500 rounded-xl shadow-md mx-auto max-w-3xl px-6 py-6 ${theme === 'dark' ? 'bg-gray-900/80' : 'bg-slate-100/90'} fade-in`}
+      className={`prose prose-blue dark:prose-invert transition-all duration-500 rounded-xl shadow-md mx-auto max-w-3xl px-6 py-6 ${theme === 'dark' ? 'bg-gray-900/80' : 'bg-slate-100/90'} fade-in markdown-body`}
       style={{ animation: 'fadeIn 0.8s' }}
       aria-label="Problem Description"
     >

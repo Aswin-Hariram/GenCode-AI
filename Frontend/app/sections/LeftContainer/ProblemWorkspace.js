@@ -1,7 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import FloatingCopyButton from "../../elements/Copy/FloatingCopyButton";
-import DifficultyBadge from "../../elements/Problem/DifficultyBadge";
 import CopyNotification from "../../components/ProblemWorkspace/CopyNotification";
 import DescriptionTab from './tabs/DescriptionTab';
 import ResultsTab from './tabs/ResultsTab';
@@ -68,7 +66,7 @@ const ProblemWorkspace = ({ problemData, activeTab, response, status, theme, isL
   return (
     <div className="h-full overflow-auto p-6 relative" style={{ fontFamily: 'Urbanist, sans-serif' }}>
       {renderContent()}
-      <FloatingCopyButton selectedText={selectedText} onCopy={copyToClipboard} />
+    
       <CopyNotification copied={copied} />
       <style jsx global>{`
         @keyframes fadeIn {
@@ -80,6 +78,13 @@ const ProblemWorkspace = ({ problemData, activeTab, response, status, theme, isL
         }
         /* Ensure text is selectable */
         .prose, .prose *, pre, code, p, div, span, h1, h2, h3, h4, h5, h6 {
+          user-select: text !important;
+          -webkit-user-select: text !important;
+          -moz-user-select: text !important;
+          -ms-user-select: text !important;
+        }
+        /* Force markdown content to be selectable */
+        .markdown-body, .markdown-body * {
           user-select: text !important;
           -webkit-user-select: text !important;
           -moz-user-select: text !important;
