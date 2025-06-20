@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import CopyNotification from "../../components/ProblemWorkspace/CopyNotification";
 import DescriptionTab from './tabs/DescriptionTab';
 import ResultsTab from './tabs/ResultsTab';
 import SolutionTab from './tabs/SolutionTab';
@@ -34,19 +33,6 @@ const ProblemWorkspace = ({ problemData, activeTab, response, status, theme, isL
     };
   }, []);
 
-  const copyToClipboard = (text) => {
-    const textToCopy = text || selectedText;
-    if (textToCopy) {
-      navigator.clipboard.writeText(textToCopy).then(() => {
-        setCopied(true);
-      }).catch(err => {
-        console.error('Failed to copy text: ', err);
-      });
-    }
-  };
-
-
-
 
   const renderContent = () => {
     switch (activeTab) {
@@ -67,7 +53,7 @@ const ProblemWorkspace = ({ problemData, activeTab, response, status, theme, isL
     <div className="h-full overflow-auto p-6 relative" style={{ fontFamily: 'Urbanist, sans-serif' }}>
       {renderContent()}
     
-      <CopyNotification copied={copied} />
+      
       <style jsx global>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
@@ -76,20 +62,8 @@ const ProblemWorkspace = ({ problemData, activeTab, response, status, theme, isL
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-in-out;
         }
-        /* Ensure text is selectable */
-        .prose, .prose *, pre, code, p, div, span, h1, h2, h3, h4, h5, h6 {
-          user-select: text !important;
-          -webkit-user-select: text !important;
-          -moz-user-select: text !important;
-          -ms-user-select: text !important;
-        }
-        /* Force markdown content to be selectable */
-        .markdown-body, .markdown-body * {
-          user-select: text !important;
-          -webkit-user-select: text !important;
-          -moz-user-select: text !important;
-          -ms-user-select: text !important;
-        }
+        
+       
         /* Style the selection */
         ::selection {
           background-color: rgba(79, 70, 229, 0.2);

@@ -11,23 +11,6 @@ function AnchorIcon() {
 function ExternalLinkIcon() {
   return <svg className="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h6m5-3h3v3m-11 8l8-8" /></svg>;
 }
-function CopyButton({ value }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      aria-label="Copy code"
-      className="ml-auto px-2 py-1 text-xs rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors focus:outline-none focus-visible:ring"
-      onClick={() => {
-        navigator.clipboard.writeText(value);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
-      }}
-      tabIndex={0}
-    >
-      {copied ? "Copied!" : "Copy"}
-    </button>
-  );
-}
 
 export const getMarkdownComponents = (theme) => ({
   h1: ({ node, children, ...props }) => {

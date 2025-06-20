@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import applyMonacoTheme from "../../../hooks/codeEditor/applyMonacoTheme";
+import applyMonacoTheme from "./applyMonacoTheme";
 
 export default function useCodeEditorLogic({
   language,

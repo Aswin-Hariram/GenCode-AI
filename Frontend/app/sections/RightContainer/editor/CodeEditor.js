@@ -1,26 +1,13 @@
 "use client";
 import { useRef, useEffect, useCallback } from "react";
-import { 
-  FiPlay, 
-  FiMaximize, 
-  FiMinimize, 
-  FiUpload, 
-  FiSettings, 
-  FiMoon, 
-  FiSun, 
-  FiChevronDown,
-  FiRotateCcw
-} from "react-icons/fi";
 import Editor from "@monaco-editor/react";
-import EditorSettingsDropdown from "../../../components/codeEditor/EditorSettingsDropdown";
 import EditorLoadingOverlay from "../../../elements/codeEditor/EditorLoadingOverlay";
-import applyMonacoTheme from "../../../hooks/codeEditor/applyMonacoTheme";
 import EditorToolbar from "../../../components/codeEditor/EditorToolbar";
 import useCodeEditorLogic from "../../../hooks/codeEditor/useCodeEditorLogic";
 import useEditorFullscreen from "../../../hooks/codeEditor/useEditorFullscreen";
 import useEditorPreferences from "../../../hooks/codeEditor/useEditorPreferences";
-import { getCssVar } from "../../../utils/editorUtils";
 import handleEditorMountFactory from "../../../components/codeEditor/handleEditorMountFactory";
+import applyMonacoTheme from "../../../hooks/codeEditor/applyMonacoTheme";
 
 const CodeEditor = (props) => {
   const {
