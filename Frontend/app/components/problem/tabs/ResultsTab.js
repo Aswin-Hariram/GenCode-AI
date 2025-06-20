@@ -19,7 +19,6 @@ const tips = [
   "Use meaningful variable names for readable code.",
   "Practice makes progress, not perfection!",
   "GenCode can help you learn new algorithms, not just solve problems.",
-  "Stuck? Try explaining your code to a rubber duck (or GenCode!).",
   "The best way to learn is to experiment fearlessly!"
 ];
 

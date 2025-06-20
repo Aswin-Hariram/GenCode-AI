@@ -46,6 +46,11 @@ const GenCode = () => {
   const [problemError, setProblemError] = useState(null);
 
   const generateNewProblem = useCallback(async () => {
+    setActiveTab('description');
+    setResponse(null);
+    setStatusData(null);
+    setCompilationResult(null);
+    setIsConsoleOpen(false);
     setIsLoading(true);
     setProblemError(null);
     setLanguage('cpp');
@@ -87,6 +92,10 @@ const GenCode = () => {
 
   // Function to fetch a new question for a specific topic
   const fetchQuestionForTopic = useCallback(async (topic) => {
+    setResponse(null);
+    setStatusData(null);
+    setCompilationResult(null);
+    setIsConsoleOpen(false);
     try {
       setIsLoading(true);
       setProblemError(null);

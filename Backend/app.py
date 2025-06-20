@@ -51,6 +51,13 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # Rate limit error handler
 @app.errorhandler(429)
 def ratelimit_handler(e):
+    # Custom message for /compiler endpoint
+    if request.endpoint == 'compile':
+        return jsonify({
+            'result': 'Error',
+            'message': 'more frequent compilation request try again later'
+        }), 429
+    # Default message for other endpoints
     return jsonify({
         'result': 'Error',
         'message': f'Rate limit exceeded: {e.description}'
@@ -151,6 +158,7 @@ def submit():
         }), 500
 
 
+@limiter.limit("10 per minute")
 @app.route('/compiler', methods=['POST'])
 def compile():
     """Compile and run code."""
