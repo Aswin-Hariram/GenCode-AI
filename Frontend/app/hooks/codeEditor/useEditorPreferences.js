@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 
+// No unused imports or functions found in this file.
+
 export default function useEditorPreferences({ setLanguage, setCurrentFontSize, setEditorTheme, setAutoSuggestEnabled, editorRef, initialFontSize }) {
   useEffect(() => {
     const storedLang = localStorage.getItem("editor-lang");

@@ -14,13 +14,13 @@ import {
 import Editor from "@monaco-editor/react";
 import EditorSettingsDropdown from "../../../components/codeEditor/EditorSettingsDropdown";
 import EditorLoadingOverlay from "../../../elements/codeEditor/EditorLoadingOverlay";
-import applyMonacoTheme from "../../../../hooks/codeEditor/applyMonacoTheme";
+import applyMonacoTheme from "../../../hooks/codeEditor/applyMonacoTheme";
 import EditorToolbar from "../../../components/codeEditor/EditorToolbar";
 import useCodeEditorLogic from "../../../hooks/codeEditor/useCodeEditorLogic";
 import useEditorFullscreen from "../../../hooks/codeEditor/useEditorFullscreen";
 import useEditorPreferences from "../../../hooks/codeEditor/useEditorPreferences";
 import { getCssVar } from "../../../utils/editorUtils";
-import handleEditorMountFactory from "../../../hooks/codeEditor/handleEditorMountFactory";
+import handleEditorMountFactory from "../../../components/codeEditor/handleEditorMountFactory";
 
 const CodeEditor = (props) => {
   const {
