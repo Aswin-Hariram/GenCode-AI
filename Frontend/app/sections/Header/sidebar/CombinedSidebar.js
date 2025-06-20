@@ -3,21 +3,14 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { FiBook, FiClock, FiRotateCw, FiX, FiAlertCircle, FiSearch } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { useSidebar } from '../../../context/SidebarContext';
+import { useTheme } from '../../../context/ThemeContext';
 
-// Utility hook: returns a debounced copy of the supplied value
-function useDebounce(value, delay = 300) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-
-  return debouncedValue;
-}
-import { useSidebar } from '../../context/SidebarContext';
-import { useTheme } from '../../context/ThemeContext';
-
+import useDebounce from '../../../hooks/sidebar/useDebounce';
+import SidebarTopicCard from '../../../components/sidebar/SidebarTopicCard';
+import SidebarFilterHeader from '../../../components/sidebar/SidebarFilterHeader';
+import useSidebarResize from '../../../hooks/sidebar/useSidebarResize';
+import SidebarResizeHandle from '../../../elements/sidebar/SidebarResizeHandle';
 
 const CombinedSidebar = () => {
   // Ref used as the "sentinel" element for triggering infinite scroll when
@@ -45,10 +38,15 @@ const CombinedSidebar = () => {
     all: null
   });
   const { theme: currentTheme, toggleTheme } = useTheme();
-  const [sidebarWidth, setSidebarWidth] = useState(400);
+  const {
+    sidebarWidth,
+    setSidebarWidth,
+    isResizing,
+    setIsResizing,
+    handleResizeMouseDown
+  } = useSidebarResize(400, 300, 0.45);
   const TOPICS_BATCH_SIZE = 10;
   const [hasMoreAllTopics, setHasMoreAllTopics] = useState(true);
-  const [isResizing, setIsResizing] = useState(false);
 
   // Helper function to fetch data
   const fetcher = useCallback(async (url, options = {}) => {
@@ -70,13 +68,6 @@ const CombinedSidebar = () => {
 
     return response.json();
   }, []);
-
-  // --- Sidebar Resizing Logic ---
-  const handleResizeMouseDown = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-  };
 
   const handleResizeMouseUp = useCallback(() => {
     if (isResizing) {
@@ -544,115 +535,19 @@ const CombinedSidebar = () => {
             </button>
           </div>
 
-          {/* View Toggle */}
-          <div className={`mt-4 flex rounded-lg p-1 ${
-            currentTheme === 'dark' 
-              ? 'bg-gray-800' 
-              : 'bg-gray-100'
-          }`}>
-            <button
-              onClick={() => setView('recent')}
-              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all duration-200 ${
-                view === 'recent'
-                  ? currentTheme === 'dark'
-                    ? 'bg-gray-700 shadow text-blue-400 shadow-md shadow-blue-500/10'
-                    : 'bg-white shadow text-blue-600 shadow-md shadow-blue-500/20'
-                  : currentTheme === 'dark'
-                    ? 'text-gray-300 hover:bg-gray-700/60 hover:text-white'
-                    : 'text-gray-600 hover:bg-white/80 hover:text-gray-900'
-              }`}
-            >
-              Recent
-            </button>
-            <button
-              onClick={() => setView('all')}
-              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all duration-200 ${
-                view === 'all'
-                  ? currentTheme === 'dark'
-                    ? 'bg-gray-700 shadow text-blue-400 shadow-md shadow-blue-500/10'
-                    : 'bg-white shadow text-blue-600 shadow-md shadow-blue-500/20'
-                  : currentTheme === 'dark'
-                    ? 'text-gray-300 hover:bg-gray-700/60 hover:text-white'
-                    : 'text-gray-600 hover:bg-white/80 hover:text-gray-900'
-              }`}
-            >
-              All Topics
-            </button>
-          </div>
-
-          {/* Search Bar */}
-          <div className="mt-4">
-            <div className={`relative rounded-lg shadow-sm ${
-              currentTheme === 'dark' ? 'bg-gray-800' : 'bg-white'
-            }`}>
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiSearch className={currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={`Search ${view === 'recent' ? 'recent' : 'all'} topics...`}
-                className={`block w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors duration-200 ${
-                  currentTheme === 'dark'
-                    ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
-                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* Filter Controls */}
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="category-filter" className={`block text-xs font-medium mb-1 ${
-                currentTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-              }`}>
-                Category
-              </label>
-              <select
-                id="category-filter"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className={`block w-full pl-3 pr-10 py-2 text-sm rounded-md border focus:ring-blue-500 focus:border-blue-500 ${
-                  currentTheme === 'dark'
-                    ? 'bg-gray-800 border-gray-700 text-white'
-                    : 'bg-white border-gray-300 text-gray-700'
-                }`}
-              >
-                <option value="all">All Categories</option>
-                {Array.from(availableCategories).map((category, index) => (
-                  <option key={`cat-${index}`} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="difficulty-filter" className={`block text-xs font-medium mb-1 ${
-                currentTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-              }`}>
-                Difficulty
-              </label>
-              <select
-                id="difficulty-filter"
-                value={difficultyFilter}
-                onChange={(e) => setDifficultyFilter(e.target.value)}
-                className={`block w-full pl-3 pr-10 py-2 text-sm rounded-md border focus:ring-blue-500 focus:border-blue-500 ${
-                  currentTheme === 'dark'
-                    ? 'bg-gray-800 border-gray-700 text-white'
-                    : 'bg-white border-gray-300 text-gray-700'
-                }`}
-              >
-                <option value="all">All Levels</option>
-                {Array.from(availableDifficulties).map((difficulty, index) => (
-                  <option key={`diff-${index}`} value={difficulty}>
-                    {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <SidebarFilterHeader
+            view={view}
+            setView={setView}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            categoryFilter={categoryFilter}
+            setCategoryFilter={setCategoryFilter}
+            difficultyFilter={difficultyFilter}
+            setDifficultyFilter={setDifficultyFilter}
+            availableCategories={availableCategories}
+            availableDifficulties={availableDifficulties}
+            currentTheme={currentTheme}
+          />
 
           {/* Active Filters */}
           {hasActiveFilters && (
@@ -860,16 +755,7 @@ const CombinedSidebar = () => {
           )}
         </div>
 
-        <div
-          onMouseDown={handleResizeMouseDown}
-          className={`absolute top-0 left-0 h-full w-2 cursor-col-resize group z-10 select-none ${isResizing ? 'bg-blue-500/20' : ''}`}
-        >
-          <div className={`w-[1px] h-full mx-auto transition-colors duration-200 ${
-            currentTheme === 'dark' 
-              ? 'bg-gray-700/60 group-hover:bg-blue-400' 
-              : 'bg-gray-300 group-hover:bg-blue-500'
-          } ${isResizing ? (currentTheme === 'dark' ? 'bg-blue-400' : 'bg-blue-500') : ''}`}></div>
-        </div>
+        <SidebarResizeHandle onMouseDown={handleResizeMouseDown} isResizing={isResizing} currentTheme={currentTheme} />
       </motion.aside>
     </>
   );
