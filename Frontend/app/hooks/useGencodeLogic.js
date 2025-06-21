@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { INITIAL_CODE } from '../utils/constants';
 import { useTheme } from '../context/ThemeContext';
-import { FiFileText, FiCode, FiBarChart2 } from 'react-icons/fi';
+import { FiFileText, FiCode, FiBarChart2, FiZap } from 'react-icons/fi';
 
 const EDITOR_LANG_KEY = 'editor-lang';
 const DEFAULT_LANGUAGE = 'cpp';
@@ -34,9 +34,11 @@ export default function useGencodeLogic() {
     time_complexity: '',
     initial_code: '',
   });
+
   const [isLoading, setIsLoading] = useState(true);
   const [problemError, setProblemError] = useState(null);
 
+  
   const generateNewProblem = useCallback(async () => {
     setActiveTab('description');
     setResponse(null);
@@ -164,6 +166,7 @@ export default function useGencodeLogic() {
     { id: 'description', label: 'Description', icon: <FiFileText /> },
     { id: 'solution', label: 'Solution', icon: <FiCode /> },
     { id: 'results', label: 'Results', icon: <FiBarChart2 /> },
+    { id: 'studywithai', label: 'Study with AI', icon: <FiZap /> },
   ];
 
   const toggleConsole = () => setIsConsoleOpen((prev) => !prev);

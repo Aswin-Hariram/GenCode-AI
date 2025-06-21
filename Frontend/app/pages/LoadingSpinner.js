@@ -19,6 +19,8 @@ export default function LoadingSpinner() {
 
   useEffect(() => {
     setIsMounted(true);
+    localStorage.removeItem("askedHelp");
+    localStorage.removeItem("studyWithAiMessages");
   }, []);
 
   useEffect(() => {

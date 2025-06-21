@@ -3,7 +3,8 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Image from "next/image";
 
-const selectableStyle = "[&_*]:!select-text [&_*]:!pointer-events-auto";
+// Remove pointer-events-auto to allow text selection/copy
+const selectableStyle = "[&_*]:!select-text";
 
 function AnchorIcon() {
   return <svg className="inline w-4 h-4 ml-1 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 010 5.656m-3.656-5.656a4 4 0 000 5.656m9.9-2.828a9 9 0 11-12.728 0" /></svg>;
@@ -73,44 +74,65 @@ export const getMarkdownComponents = (theme) => ({
   ),
   code({ node, inline, className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || "");
+    const [copied, setCopied] = useState(false);
+    const codeRef = useRef(null);
+    const codeString = String(children).replace(/\n$/, "");
+
+    const handleCopy = () => {
+      if (navigator && navigator.clipboard) {
+        navigator.clipboard.writeText(codeString);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      }
+    };
+
     return !inline && match ? (
-      <div className={`my-4 overflow-hidden rounded-lg font-lexend ${theme === 'dark' ? 'border border-gray-700 bg-gray-800' : 'border border-gray-200 bg-gray-50'} ${selectableStyle}`}>
+      <div className={`my-4 overflow-hidden rounded-lg font-lexend select-text ${theme === 'dark' ? 'border border-gray-700 bg-gray-800' : 'border border-gray-200 bg-gray-50'} ${selectableStyle}`}>
         <div className={`flex items-center justify-between font-lexend ${theme === 'dark' ? 'bg-gray-700 px-4 py-2 border-b border-gray-600' : 'bg-gray-100 px-4 py-2 border-b border-gray-200'}`}>
           <span className={`text-xs font-medium font-lexend ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>{match[1]}</span>
           <div className="flex items-center space-x-1">
-            <div className="w-2 h-2 rounded-full bg-red-400"></div>
-            <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-            <div className="w-2 h-2 rounded-full bg-green-400"></div>
+            <button
+              onClick={handleCopy}
+              className={`ml-3 px-2 py-1 text-xs rounded font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${theme === 'dark' ? 'bg-gray-800 text-blue-300 hover:bg-gray-600 focus-visible:ring-blue-400' : 'bg-gray-200 text-blue-700 hover:bg-gray-300 focus-visible:ring-blue-600'}`}
+              aria-label="Copy code"
+              type="button"
+            >
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
           </div>
         </div>
         <SyntaxHighlighter
-          style={theme === 'dark' ? vscDarkPlus : vs}
+          ref={codeRef}
           language={match[1]}
-          PreTag="div"
-          {...props}
+          style={theme === 'dark' ? vscDarkPlus : vs}
           customStyle={{
-            margin: 0,
-            padding: '1rem',
             background: theme === 'dark' ? '#181C24' : '#f3f6fa',
-            borderRadius: '0 0 0.5rem 0.5rem',
-            fontFamily: 'Lexend, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
             fontSize: '1rem',
-            userSelect: 'text',
-            WebkitUserSelect: 'text',
-            MozUserSelect: 'text',
-            msUserSelect: 'text',
-            pointerEvents: 'auto',
+            borderRadius: '0.75rem',
+            padding: '1rem',
+            fontFamily: 'Lexend, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            color: theme === 'dark' ? '#e5e7eb' : '#1e293b',
             boxShadow: theme === 'dark' ? '0 2px 12px 0 #0002' : '0 2px 12px 0 #0001',
+            userSelect: 'text',
           }}
+          codeTagProps={{
+            style: {
+              fontFamily: 'Lexend, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              fontWeight: 600,
+              letterSpacing: '0.015em',
+              userSelect: 'text',
+            }
+          }}
+          className="!bg-transparent font-lexend select-text"
         >
-          {String(children).replace(/\n$/, "")}
+          {codeString}
         </SyntaxHighlighter>
       </div>
     ) : (
-      <code className={`px-2 py-1 rounded font-mono text-sm font-lexend border transition-colors
+      <code className={`px-2 py-1 rounded font-mono text-sm font-lexend border transition-colors select-text
         ${theme === 'dark' ? 'bg-[#23272e] text-emerald-300 border-[#333a46]' : 'bg-[#f3f6fa] text-indigo-700 border-[#e0e7ef]'}
         ${selectableStyle}`}
-        style={{ fontWeight: 600, letterSpacing: '0.015em' }}
+        style={{ fontWeight: 600, letterSpacing: '0.015em', userSelect: 'text' }}
         {...props}
       >
         {children}
@@ -138,13 +160,13 @@ export const getMarkdownComponents = (theme) => ({
     // If src is not provided, use an empty alt text for decorative images
     const altText = props.alt || '';
     return (
-      <Image 
-        src={src || ''} 
+      <Image
+        src={src || ''}
         alt={altText}
-        width={500} 
-        height={300} 
-        className={`max-w-full h-auto rounded-lg mx-auto my-4 font-lexend ${theme === 'dark' ? 'opacity-90' : ''}`} 
-        {...props} 
+        width={500}
+        height={300}
+        className={`max-w-full h-auto rounded-lg mx-auto my-4 font-lexend ${theme === 'dark' ? 'opacity-90' : ''}`}
+        {...props}
       />
     );
   },

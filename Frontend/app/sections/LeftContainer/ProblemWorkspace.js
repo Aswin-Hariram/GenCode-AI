@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import DescriptionTab from './tabs/DescriptionTab';
 import ResultsTab from './tabs/ResultsTab';
 import SolutionTab from './tabs/SolutionTab';
-import ProblemTabs from '../../components/ProblemWorkspace/ProblemTabs';
+import StudyWithAi from './tabs/StudyWithAi';
 
 const ProblemWorkspace = ({ problemData, activeTab, response, status, theme, isLoading }) => {
   const [copied, setCopied] = useState(false);
@@ -43,6 +43,9 @@ const ProblemWorkspace = ({ problemData, activeTab, response, status, theme, isL
         return <ResultsTab response={response} status={status} theme={theme} isLoading={isLoading} />;
       case "solution":
         return <SolutionTab problemData={problemData} theme={theme}/>;
+      case "studywithai":
+        return <StudyWithAi problemData={problemData} />
+        
       default:
         return null;
     }

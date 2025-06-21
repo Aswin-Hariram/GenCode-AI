@@ -23,7 +23,7 @@ const tips = [
 const ResultsTab = ({ response, status, theme = 'light', isLoading = false }) => {
   const isError = response?.includes('#NO ACTUAL LOGIC FOUND') || status?.includes('Not Accepted') || status?.includes('Partially Accepted');
   return (
-    <div className="animate-fadeIn space-y-6 p-6 font-lexend">
+    <div className="animate-fadeIn space-y-6 p-6 font-lexend " style={{ fontFamily: 'Lexend, sans-serif' }}>
       {isLoading ? (
         <ResultLoader theme={theme} />
       ) : !response ? (
@@ -33,7 +33,7 @@ const ResultsTab = ({ response, status, theme = 'light', isLoading = false }) =>
           </div>
         </div>
       ) : (
-        <div className="max-w-2xl mx-auto">
+        <div className=" max-w-screen mx-auto ">
           <div className={`prose ${theme === 'dark' ? 'prose-invert' : 'prose-lg'} max-w-none select-text prose-headings:font-semibold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-base prose-p:leading-7 prose-a:no-underline hover:prose-a:underline prose-strong:font-bold prose-pre:p-0 prose-pre:bg-transparent prose-pre:rounded-lg prose-img:rounded-lg`}>
             <div className={`rounded-lg p-4 mb-6 ${
               isError 

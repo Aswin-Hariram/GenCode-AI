@@ -20,7 +20,7 @@ from services.question_generator import generate_dsa_question
 from codeCompiler import compile_code
 from submitCode import submit_code
 from firebase_service import FirebaseService
-
+from services.askHelpToAI import ask_help_to_ai
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -542,6 +542,58 @@ def log_error(message, print_to_console=True):
     except Exception as e:
         print(f"Error in log_error: {str(e)}", flush=True)
         traceback.print_exc()
+
+@app.route('/api/ask-help-to-ai', methods=['POST'])
+def api_ask_help_to_ai():
+    """
+    Endpoint to ask for help from AI.
+    
+    Request body:
+    {
+        "sender": "user",
+        "message": "Your question or request here",
+        "language": "cpp",
+        "problem Data": {
+            "title": "Enter problem title here",
+            "description": "Enter markdown-formatted problem description here",
+            "solution": "Enter C++ solution code here",
+            "testcases": [],
+            "difficulty": "easy | medium | hard",
+            "time_complexity": "Enter time complexity (e.g., O(N + M))",
+            "space_complexity": "Enter space complexity (e.g., O(M))",
+            "initial_code": "Enter initial starter code here",
+            "realtopic": "Enter real topic or reference here"
+        }
+    }   
+    """
+    try:
+        data = request.get_json()
+
+        sender = data.get('sender', 'user')
+        message = data.get('message', '')
+        language = data.get('language', 'cpp')
+        problem_description = data.get('problem Description', '')
+        problem_topic = data.get('problem Topic', '')
+
+        # Fix: check for problem_description and problem_topic instead of problem_data
+        if not message or not problem_description or not problem_topic:
+            return jsonify({
+                'success': False,
+                'error': 'Message, problem description, and problem topic are required.'
+            }), 400
+
+        # Call the AI service to get help
+        response = ask_help_to_ai(message, language, problem_description, problem_topic)
+
+        return jsonify(response) 
+
+    except Exception as e:
+        
+        return jsonify({
+            'success': False,
+            'error': f'Failed to process request: {str(e)}'
+        }), 500
+
 
 @app.route('/api/all-topics', methods=['GET'])
 def api_all_topics():

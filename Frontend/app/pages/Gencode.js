@@ -9,6 +9,7 @@ import ConsoleModal from '../modals/ConsoleModal';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorDisplay from './ErrorDisplay';
 import useGencodeLogic from '../hooks/useGencodeLogic';
+import { useEffect } from 'react';
 
 const GenCode = () => {
   const {
@@ -66,6 +67,8 @@ const GenCode = () => {
   if (problemError) {
     return <ErrorDisplay error={problemError} />;
   }
+
+
 
   return (
     <div className={`flex flex-col h-screen ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-800'} transition-colors duration-300`}>
