@@ -160,7 +160,7 @@ const CodeEditor = (props) => {
           onChange={onCodeChange}
           onMount={handleEditorMount}
           options={{
-            fontFamily: 'Urbanist, var(--font-sans), system-ui, -apple-system, sans-serif',
+            fontFamily: 'Lexend, var(--font-sans), system-ui, -apple-system, sans-serif',
             fontSize: currentFontSize,
             minimap: { enabled: true },
             scrollBeyondLastLine: false,

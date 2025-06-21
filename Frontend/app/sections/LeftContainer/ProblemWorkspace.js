@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import DescriptionTab from './tabs/DescriptionTab';
 import ResultsTab from './tabs/ResultsTab';
 import SolutionTab from './tabs/SolutionTab';
+import ProblemTabs from '../../components/ProblemWorkspace/ProblemTabs';
 
 const ProblemWorkspace = ({ problemData, activeTab, response, status, theme, isLoading }) => {
   const [copied, setCopied] = useState(false);
@@ -50,7 +51,7 @@ const ProblemWorkspace = ({ problemData, activeTab, response, status, theme, isL
 
 
   return (
-    <div className="h-full overflow-auto p-6 relative" style={{ fontFamily: 'Urbanist, sans-serif' }}>
+    <div className="h-full overflow-auto p-6 relative" style={{ fontFamily: 'Lexend, sans-serif' }}>
       {renderContent()}
     
       

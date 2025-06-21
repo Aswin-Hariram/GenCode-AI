@@ -26,7 +26,7 @@ export const generatePDF = async (title, difficulty, problemData, editorCode, so
     tempDiv.style.padding = '10mm';
     tempDiv.style.backgroundColor = 'white';
     tempDiv.style.color = 'black';
-    tempDiv.style.fontFamily = 'Arial, sans-serif';
+    tempDiv.style.fontFamily = 'Lexend, sans-serif';
     document.body.appendChild(tempDiv);
 
     const titleEl = document.createElement('h1');
@@ -76,7 +76,7 @@ export const generatePDF = async (title, difficulty, problemData, editorCode, so
         ul, ol { margin-left: 20px; margin-bottom: 10px; }
         li { margin-bottom: 4px; }
         pre { background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin-bottom: 10px; overflow-x: auto; }
-        code { font-family: monospace; background-color: #f5f5f5; padding: 2px 4px; border-radius: 3px; }
+        code { font-family: 'Lexend', monospace; background-color: #f5f5f5; padding: 2px 4px; border-radius: 3px; }
         table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f5f5f5; }

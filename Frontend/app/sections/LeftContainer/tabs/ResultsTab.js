@@ -23,7 +23,7 @@ const tips = [
 const ResultsTab = ({ response, status, theme = 'light', isLoading = false }) => {
   const isError = response?.includes('#NO ACTUAL LOGIC FOUND') || status?.includes('Not Accepted') || status?.includes('Partially Accepted');
   return (
-    <div className="animate-fadeIn space-y-6 p-6 font-urbanist">
+    <div className="animate-fadeIn space-y-6 p-6 font-lexend">
       {isLoading ? (
         <ResultLoader theme={theme} />
       ) : !response ? (

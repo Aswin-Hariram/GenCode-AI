@@ -132,7 +132,7 @@ export default function useCodeEditorLogic({
   const handleEditorMount = (editor, monaco) => {
     editorRef.current = editor;
     applyMonacoTheme(monaco, editorTheme);
-    editor.updateOptions({ fontSize: currentFontSize, fontFamily: 'Urbanist, var(--font-sans), system-ui, -apple-system, sans-serif' });
+    editor.updateOptions({ fontSize: currentFontSize, fontFamily: 'Lexend, var(--font-sans), system-ui, -apple-system, sans-serif' });
     editor.onDidChangeConfiguration(() => {
       const opts = editor.getRawOptions();
       if (opts.fontSize) {

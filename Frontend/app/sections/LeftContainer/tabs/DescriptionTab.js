@@ -15,7 +15,7 @@ const DescriptionTab = ({ problemData }) => {
   return (
     <div
       className={`relative animate-fadeIn rounded-md ${theme === 'dark' ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-100 via-slate-100 to-blue-200'}`}
-      style={{ fontFamily: 'Urbanist, sans-serif',userSelect: 'text' }}
+      style={{ fontFamily: 'Lexend, sans-serif',userSelect: 'text' }}
       aria-label="Problem Description Tab"
     >
       {/* Animated Markdown Description */}

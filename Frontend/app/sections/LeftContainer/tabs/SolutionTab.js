@@ -110,7 +110,7 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
   };
 
   return (
-    <div className="space-y-6 font-urbanist">
+    <div className="space-y-6 font-lexend">
       <div className={`rounded-xl p-6 shadow-md transition-colors duration-300 ${
         theme === 'dark' ? 'bg-gray-900/80 border border-gray-700/80' : 'bg-slate-100/80 border border-gray-300/80'}`}
       >

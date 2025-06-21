@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import DescriptionTab from '../../sections/LeftContainer/tabs/DescriptionTab';
 import ResultsTab from '../../sections/LeftContainer/tabs/ResultsTab';
 import SolutionTab from '../../sections/LeftContainer/tabs/SolutionTab';
+
+
 
 const ProblemTabs = ({ problemData, activeTab, response, status, theme, isLoading }) => {
   switch (activeTab) {

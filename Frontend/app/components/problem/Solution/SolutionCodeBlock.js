@@ -24,19 +24,19 @@ const SolutionCodeBlock = ({ code, language, theme, onCopy, copied, isConverting
             fontSize: '1rem',
             borderRadius: '0.75rem',
             padding: '1rem',
-            fontFamily: 'Urbanist, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            fontFamily: 'Lexend, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
             color: theme === 'dark' ? '#e5e7eb' : '#1e293b',
             boxShadow: theme === 'dark' ? '0 2px 12px 0 #0002' : '0 2px 12px 0 #0001',
             userSelect: 'text',
           }}
           codeTagProps={{
             style: {
-              fontFamily: 'Urbanist, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              fontFamily: 'Lexend, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
               fontWeight: 600,
               letterSpacing: '0.015em',
             }
           }}
-          className="!bg-transparent font-urbanist"
+          className="!bg-transparent font-lexend"
         >
           {code}
         </SyntaxHighlighter>

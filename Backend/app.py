@@ -16,7 +16,7 @@ from flask import Flask, jsonify, request, render_template, redirect, url_for, f
 from flask_cors import CORS
 
 from topic_manager import get_random_topic, get_recent_topics, add_topic as add_topic_manager
-from question_generator import generate_dsa_question
+from services.question_generator import generate_dsa_question
 from codeCompiler import compile_code
 from submitCode import submit_code
 from firebase_service import FirebaseService

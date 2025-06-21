@@ -15,7 +15,7 @@ export default function handleEditorMountFactory({
     applyMonacoTheme(monaco, editorTheme);
     editor.updateOptions({ 
       fontSize: currentFontSize,
-      fontFamily: 'Urbanist, var(--font-sans), system-ui, -apple-system, sans-serif'
+      fontFamily: 'Lexend, var(--font-sans), system-ui, -apple-system, sans-serif'
     });
     editor.onDidChangeConfiguration(() => {
       const opts = editor.getRawOptions();

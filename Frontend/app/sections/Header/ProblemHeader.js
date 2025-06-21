@@ -53,7 +53,7 @@ const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsDa
       theme === 'dark' 
         ? 'bg-gray-800 text-gray-200 border-b border-gray-700' 
         : 'bg-gray-100 text-gray-800 border-b border-gray-200'
-    } transition-colors duration-300`} style={{ fontFamily: 'Urbanist, sans-serif' }}>
+    } transition-colors duration-300`} style={{ fontFamily: 'Lexend, sans-serif' }}>
       {/* Left Section */}
       <div className="flex-1 flex items-center space-x-4">
         <h1 className={`font-bold text-xl ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} tracking-tight`}>
