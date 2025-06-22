@@ -81,7 +81,7 @@ function StudyWithAi({ problemData }) {
         user_code_progress: localStorage.getItem('editor-code') || '',
       };
       console.log('Sending payload to AI:', payload);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ask-help-to-ai`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ask-help-to-ai`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
