@@ -27,7 +27,7 @@ Language: **{language}**. //Programming language used for solving, return answer
 Problem Description: {problem_description} //Problem description provided
 Initial Code: ```{language}\n{initial_code}\n```. //Initial code provided
 User's Question: {message}
-User's Code Progress: ```{language}\n{user_code_progress}\n```. //User's current code progress considered as context and help him to solve the problem
+User's Code Progress: ```{language}\n{user_code_progress}\n```. //User's current code progress considered as context and help him to solve the problem [Use this if the user asks something related to this code otherwise ignore this context]
 
 [IMPORTANT] If the user asks something not related to the memory but if it is related to the problem, then answer it based on the problem description and initial code provided.
 Expectation:
