@@ -1,8 +1,7 @@
 import React from 'react'
+import { Send, Bot, User, Sparkles, XCircle, Maximize2, Minimize2 } from 'lucide-react';
 
-import { Send, Bot, User, Sparkles, XCircle } from 'lucide-react';
-
-function Header({theme, onClearChat}) {
+function Header({theme, onClearChat, onFullScreenToggle, isFullScreen}) {
     return (
         <div className={`px-6 py-3 border-b ${theme === 'dark'
             ? 'border-slate-700/50 bg-slate-800/50'
@@ -27,17 +26,26 @@ function Header({theme, onClearChat}) {
                         </p>
                     </div>
                 </div>
-                <button
-                    onClick={onClearChat}
-                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
-                    title="Clear chat"
-                >
-                    <XCircle size={16} />
-                    Clear Chat
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={onFullScreenToggle}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
+                        title={isFullScreen ? 'Exit Full Screen' : 'Full Screen'}
+                    >
+                        {isFullScreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                        {isFullScreen ? 'Exit Full Screen' : 'Full Screen'}
+                    </button>
+                    <button
+                        onClick={onClearChat}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
+                        title="Clear chat"
+                    >
+                        <XCircle size={16} />
+                        Clear Chat
+                    </button>
+                </div>
             </div>
         </div>
-
     )
 }
 

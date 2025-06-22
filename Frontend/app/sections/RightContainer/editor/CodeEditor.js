@@ -100,6 +100,12 @@ const CodeEditor = (props) => {
     }
   };
 
+  // Save code to localStorage on change
+  const handleCodeChange = (value) => {
+    if (onCodeChange) onCodeChange(value);
+    localStorage.setItem('editor-code', value || '');
+  };
+
   // Ensure the toggle fullscreen function works in keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -157,7 +163,7 @@ const CodeEditor = (props) => {
           language={currentLanguage}
           value={code}
           theme={editorTheme}
-          onChange={onCodeChange}
+          onChange={handleCodeChange}
           onMount={handleEditorMount}
           options={{
             fontFamily: 'Lexend, var(--font-sans), system-ui, -apple-system, sans-serif',

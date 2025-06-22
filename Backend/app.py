@@ -574,6 +574,8 @@ def api_ask_help_to_ai():
         language = data.get('language', 'cpp')
         problem_description = data.get('problem Description', '')
         problem_topic = data.get('problem Topic', '')
+        initial_code = data.get('initial code', '')
+        user_code_progress = data.get('user_code_progress', '')
 
         # Fix: check for problem_description and problem_topic instead of problem_data
         if not message or not problem_description or not problem_topic:
@@ -583,7 +585,7 @@ def api_ask_help_to_ai():
             }), 400
 
         # Call the AI service to get help
-        response = ask_help_to_ai(message, language, problem_description, problem_topic)
+        response = ask_help_to_ai(message, language, problem_description, problem_topic, initial_code, user_code_progress)
 
         return jsonify(response) 
 

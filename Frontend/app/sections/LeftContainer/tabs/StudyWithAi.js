@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, use } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import InputContainer from '../../../components/problem/studywithai/InputContainer';
 import MessageContainer from '../../../components/problem/studywithai/messageContainer';
@@ -28,15 +28,17 @@ function StudyWithAi({ problemData }) {
   const [askedHelp, setAskedHelp] = useState(
     JSON.parse(localStorage.getItem('askedHelp') || 'false')
   );
-
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('studyWithAiMessages', JSON.stringify(messages));
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const handleFullScreenToggle = () => {
+    setIsFullScreen((prev) => !prev);
+  };
 
- 
   const handleAskHelp = () => {
     setAskedHelp(true);
     localStorage.setItem('askedHelp', 'true');
@@ -72,9 +74,11 @@ function StudyWithAi({ problemData }) {
       const payload = {
         sender: 'user',
         message: input,
-        language: 'cpp',
+        language: localStorage.getItem('editor-lang') || 'cpp',
         'problem Description': problemData.description || {},
         'problem Topic': problemData.realtopic || '',
+        'initial code': problemData.initial_code || '',
+        user_code_progress: localStorage.getItem('editor-code') || '',
       };
       console.log('Sending payload to AI:', payload);
       const response = await fetch('http://127.0.0.1:8000/api/ask-help-to-ai', {
@@ -123,15 +127,17 @@ function StudyWithAi({ problemData }) {
         } rounded-2xl shadow-2xl border ${theme === 'dark'
           ? 'border-slate-700/50 shadow-black/20'
           : 'border-slate-300 shadow-slate-400/30'
-        } backdrop-blur-sm overflow-hidden`}
+        } backdrop-blur-sm overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 rounded-none border-none shadow-none' : ''}`}
+      style={isFullScreen ? {height: '100vh', width: '100vw'} : {}}
     >
-      <Header theme={theme} onClearChat={handleClearChat}/>
+      <Header theme={theme} onClearChat={handleClearChat} onFullScreenToggle={handleFullScreenToggle} isFullScreen={isFullScreen} />
       <MessageContainer
-        messages={messages}
-        isTyping={isTyping}
-        theme={theme}
-        messagesEndRef={messagesEndRef}
-      />
+  messages={messages}
+  isTyping={isTyping}
+  theme={theme}
+  messagesEndRef={messagesEndRef}
+  isFullScreen={isFullScreen}
+/>
       <InputContainer
         input={input}
         setInput={setInput}
