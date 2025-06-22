@@ -80,10 +80,9 @@ export const getUserMessageStyle = () => ({
       {props.children}
     </blockquote>
   ),
-  Code({ node, inline, className, children, ...props }) {
+  code({ node, inline, className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || "");
-    const [copied, setCopied] = useState(false);
-    const codeRef = useRef(null);
+  
     const codeString = String(children).replace(/\n$/, "");
 
     const codeBlockStyle = {
@@ -99,17 +98,49 @@ export const getUserMessageStyle = () => ({
     const codeTagStyle = {
       fontFamily: 'Lexend, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
       fontWeight: 600,
+      letterSpacing: '0.015em',
+      userSelect: 'text',
+      background: 'transparent',
     };
 
+    const overrideWhiteTextStyle = (baseStyle) => {
+      const newStyle = { ...baseStyle };
+      Object.keys(newStyle).forEach((key) => {
+        if (typeof newStyle[key] === 'object') {
+          newStyle[key] = {
+            ...newStyle[key],
+            color: '#ffffff',
+          };
+        }
+      });
+      return newStyle;
+    };
+
+    const overriddenStyle = overrideWhiteTextStyle(vscDarkPlus);
+
     return !inline && match ? (
-      <div style={codeBlockStyle}>
-        <code ref={codeRef} className={className} style={codeTagStyle} {...props}>
-          {codeString}
-        </code>
-      </div>
-    ) : (
-      <code ref={codeRef} className={className} {...props}>
+      <SyntaxHighlighter
+        language={match[1]}
+        style={overriddenStyle}
+        customStyle={codeBlockStyle}
+        codeTagProps={{ style: codeTagStyle }}
+        className="bg-transparent font-lexend select-text"
+      >
         {codeString}
+      </SyntaxHighlighter>
+    ) : (
+      <code
+        className={`px-2 py-1 rounded font-mono text-sm font-lexend select-text`}
+        style={{
+          fontWeight: 600,
+          letterSpacing: '0.015em',
+          userSelect: 'text',
+          color: '#ffffff',
+          background: '#2563eb',
+        }}
+        {...props}
+      >
+        {children}
       </code>
     );
   },
