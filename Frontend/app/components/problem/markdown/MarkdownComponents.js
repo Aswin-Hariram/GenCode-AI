@@ -72,7 +72,7 @@ export const getMarkdownComponents = (theme) => ({
       {props.children}
     </blockquote>
   ),
-  code({ node, inline, className, children, ...props }) {
+  Code({ node, inline, className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || "");
     const [copied, setCopied] = useState(false);
     const codeRef = useRef(null);
@@ -129,13 +129,8 @@ export const getMarkdownComponents = (theme) => ({
         </SyntaxHighlighter>
       </div>
     ) : (
-      <code className={`px-2 py-1 rounded font-mono text-sm font-lexend border transition-colors select-text
-        ${theme === 'dark' ? 'bg-[#23272e] text-emerald-300 border-[#333a46]' : 'bg-[#f3f6fa] text-indigo-700 border-[#e0e7ef]'}
-        ${selectableStyle}`}
-        style={{ fontWeight: 600, letterSpacing: '0.015em', userSelect: 'text' }}
-        {...props}
-      >
-        {children}
+      <code ref={codeRef} className={className} {...props}>
+        {codeString}
       </code>
     );
   },

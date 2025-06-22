@@ -50,7 +50,7 @@ const CodeEditor = (props) => {
     if (editorRef.current && window.monaco) {
       applyMonacoTheme(window.monaco, editorTheme);
     }
-  }, [editorTheme]);
+  }, [editorTheme, editorRef]);
 
   // Editor mount handler (split out)
   // Move handleSubmitCode definition above handleEditorMount

@@ -74,7 +74,7 @@ const CombinedSidebar = () => {
       setIsResizing(false);
       localStorage.setItem('sidebarWidth', sidebarWidth.toString());
     }
-  }, [isResizing, sidebarWidth]);
+  }, [isResizing, sidebarWidth, setIsResizing]);
 
   const handleResizeMouseMove = useCallback((e) => {
     if (isResizing) {
@@ -85,7 +85,7 @@ const CombinedSidebar = () => {
         setSidebarWidth(newWidth);
       }
     }
-  }, [isResizing]);
+  }, [isResizing, setSidebarWidth]);
 
   useEffect(() => {
     const savedWidth = localStorage.getItem('sidebarWidth');
@@ -95,7 +95,7 @@ const CombinedSidebar = () => {
       const maxWidth = window.innerWidth * 0.45;
       setSidebarWidth(Math.max(minWidth, Math.min(parsedWidth, maxWidth)));
     }
-  }, []);
+  }, [setSidebarWidth]);
 
   useEffect(() => {
     if (isResizing) {
