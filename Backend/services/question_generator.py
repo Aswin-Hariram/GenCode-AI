@@ -73,6 +73,7 @@ def generate_dsa_question(topic: str) -> dict:
     - Implement a basic main() function with sample test cases
     - Include function signatures with clear parameter and return types
     - Ensure code is compilable and serves as a starting point
+    - Use TODO statement only as "TODO implement logic here:
     - give main function with proper test case exactly like solution
     - Dont give any hints for solving the problem [MUST]
 

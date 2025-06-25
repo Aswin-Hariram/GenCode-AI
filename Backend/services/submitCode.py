@@ -39,9 +39,9 @@ Markdown Format is as follows:
 
 
 ## 2. 🧩 Logical Correctness
-Logical Mistakes: [show this if implemented logic is not correct]
-    - List the logical mistakes in short points and concise and attractive and easy to understand.
-Logical Strengths: [show this if implemented logic is correct]
+### Logical Mistakes: [show this if implemented logic is not correct]
+    - **List the logical mistakes in short points and concise and attractive and easy to understand.**
+### Logical Strengths: [show this if implemented logic is correct]
     - List the logical strengths in short points and concise and attractive and easy to understand.
 
 ## 3. 🧪 Test Case Performance
