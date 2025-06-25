@@ -1,65 +1,101 @@
 import re
-from config import llm
+from config.config import llm
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationSummaryMemory
+from typing import Dict, Any
 
-# Create ConversationSummaryMemory for long-term context handling
-memory = ConversationSummaryMemory(llm=llm, return_messages=True)
+# Singleton pattern for memory and conversation objects to avoid re-instantiation
+class _ConversationManager:
+    _memory = None
+    _conversation = None
 
-# Initialize conversation chain with memory
-conversation = ConversationChain(
-    llm=llm,
-    memory=memory,
-    verbose=False
-)
+    @classmethod
+    def get_conversation(cls):
+        if cls._memory is None:
+            cls._memory = ConversationSummaryMemory(llm=llm, return_messages=True)
+        if cls._conversation is None:
+            cls._conversation = ConversationChain(
+                llm=llm,
+                memory=cls._memory,
+                verbose=False
+            )
+        return cls._conversation
 
-def ask_help_to_ai(message, language, problem_description,problem_topic, initial_code,user_code_progress) -> dict:
+_PROMPT_TEMPLATE = """
+You are a highly skilled AI coding assistant, similar to ChatGPT, dedicated to providing clear, concise, and actionable help for coding problems. Your responses should be tailored to the user's current context and learning needs.
+
+## Problem Context
+- **Topic:** {problem_topic}
+- **Language:** {language}
+- **Description:** {problem_description}
+- **Initial Code:**
+```{language}
+{initial_code}
+```
+- **User's Question:** {message}
+- **User's Code Progress:**
+```{language}
+{user_code_progress}
+```
+
+## Instructions
+- **Always answer ONLY the user's question.** Stay strictly on-topic.
+- **If the question relates to code,** use the user's code progress to guide your answer.
+- **Do NOT provide full solutions or code unless explicitly requested.** Focus on logic, concepts, and next steps.
+- **If the question is not related to the code progress,** use only the problem description and initial code for context.
+- **If the question is unrelated to the problem,** politely state that you can only assist with the current coding problem.
+- **Be proactive in clarifying ambiguities** if the user's question is unclear, but do not ask unnecessary questions.
+- **Use markdown formatting** for clarity:
+    - Bullet points for lists
+    - Numbered steps for processes
+    - Tables or ASCII diagrams for visual explanation
+    - Code blocks with the correct language tag for code snippets
+- **For explanations:**
+    - Use step-by-step breakdowns
+    - Show iterations or changes using tables or side-by-side comparisons
+    - Add visual aids if they improve understanding
+- **Tone:**
+    - Simple, beginner-friendly, and focused on learning
+    - Encourage and empower the user to solve the problem themselves
+- **Avoid:**
+    - Unnecessary information, excessive details, or unrelated suggestions
+    - Repetition or verbose explanations
+
+## Response Format
+Respond in **markdown** using the following structure:
+
+**Output:** Short, clear answer to the user's question, focused on the next logical step or concept.
+**Note:** If code is needed, use markdown code blocks with the appropriate language tag. If further clarification is needed, ask a concise follow-up question.
+"""
+
+def ask_help_to_ai(
+    message: str,
+    language: str,
+    problem_description: str,
+    problem_topic: str,
+    initial_code: str,
+    user_code_progress: str
+) -> Dict[str, Any]:
     """
     Ask help to AI with summary memory and markdown formatting.
-    Returns only values inside the 'data' key.
+    Returns a dictionary with sender, output, and status keys.
     """
-    prompt = f"""
-You are a helpful AI assistant chatbot similar to chatgpt for coding assistance based on user question.
+    prompt = _PROMPT_TEMPLATE.format(
+        message=message,
+        language=language,
+        problem_description=problem_description,
+        problem_topic=problem_topic,
+        initial_code=initial_code,
+        user_code_progress=user_code_progress
+    )
 
-The user is working on a problem:
-Topic: **{problem_topic}**. //Actual problem topic
-Language: **{language}**. //Programming language used for solving, return answer based on this language
-Problem Description: {problem_description} //Problem description provided
-Initial Code: ```{language}\n{initial_code}\n```. //Initial code provided
-User's Question: {message}
-User's Code Progress: ```{language}\n{user_code_progress}\n```. //User's current code progress considered as context and help him to solve the problem [Use this if the user asks something related to this code otherwise ignore this context]
-
-[IMPORTANT] Don't use User's Code Progress and previous messages as context if the user asks something not related to the memory but if it is related to the problem, then answer it based on the problem description and initial code provided.
-[IMPORTANT] If the user asks something not related to the memory but if it is related to the problem, then answer it based on the problem description and initial code provided.
-Instructions:
-1. **Answer ONLY the user's question**. Stay on-topic based on the context above.
-2. **If the question relates to code**, use `User's Code Progress` to guide your answer.
-3. **Do NOT provide complete code unless the user explicitly asks for code or solution.** Focus on logic or concepts instead.
-4. Use **markdown formatting** in your reply with:
-   - Bullet points
-   - Numbered steps
-   - Visual aids (e.g., ASCII diagrams, tables) to explain ideas
-5. If the user asks for explanation:
-   - Use **step-by-step breakdowns**.
-   - Show **iteration** using tables.
-   - Add visual explanation if it improves clarity.
-6. Your tone should be **simple, beginner-friendly, and focused on learning**.
-7. **Avoid unnecessary information**, excessive details, or unrelated suggestions.
-
-Goal: Help the user understand the logic and approach to solve the problem, as if you're a human coding tutor sitting next to them.
-Respond in **markdown** format using the following structure:
-
-**Output**: Response in short and clear answer to the User's Question without unwanted information.
-**Note**: If you need to provide code, use markdown code blocks with the appropriate language tag."""
-
-    # Get response with memory-enabled conversation
+    conversation = _ConversationManager.get_conversation()
     raw_response = conversation.predict(input=prompt).strip()
 
-    # Extract markdown-formatted output
-    match = re.search(r"\*\*Output\*\*:\s*(.+)", raw_response, re.IGNORECASE | re.DOTALL)
+    # Extract markdown-formatted output efficiently
+    match = re.search(r"\*\*Output\*\*:\s*(.+?)(?:\n\*\*Note\*\*|$)", raw_response, re.IGNORECASE | re.DOTALL)
     output = match.group(1).strip() if match else raw_response
 
-    # Return only the values inside 'data'
     return {
         "sender": "user",
         "output": output,

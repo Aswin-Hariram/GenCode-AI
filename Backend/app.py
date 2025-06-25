@@ -7,7 +7,7 @@ import psutil
 import time
 from functools import wraps
 from datetime import datetime
-from changeLanguage import LangChange
+from services.changeLanguage import LangChange
 from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -15,11 +15,11 @@ from flask_limiter.util import get_remote_address
 from flask import Flask, jsonify, request, render_template, redirect, url_for, flash
 from flask_cors import CORS
 
-from topic_manager import get_random_topic, get_recent_topics, add_topic as add_topic_manager
+from services.topic_manager import get_random_topic, get_recent_topics, add_topic as add_topic_manager
 from services.question_generator import generate_dsa_question
-from codeCompiler import compile_code
-from submitCode import submit_code
-from firebase_service import FirebaseService
+from services.codeCompiler import compile_code
+from services.submitCode import submit_code
+from services.firebase_service import FirebaseService
 from services.askHelpToAI import ask_help_to_ai
 # Configure logging
 logging.basicConfig(
@@ -238,7 +238,7 @@ def changeLanguage():
 def get_dsa_question():
     """Generate a DSA question based on the provided topic or a random one if not specified."""
     try:
-        from firebase_service import FirebaseService
+        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
 
         # Get topic from query parameter
@@ -264,7 +264,7 @@ def get_dsa_question():
         result['topic'] = topic_str
         
         # Get the topic details including difficulty from Firestore
-        from firebase_service import FirebaseService
+        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
         topics = FirebaseService.get_all_topics()
         
@@ -295,7 +295,7 @@ def get_dsa_question():
 def manage_topics():
     """Display the topics management page."""
     try:
-        from firebase_service import FirebaseService
+        from services.firebase_service import FirebaseService
         # Ensure Firebase is initialized
         FirebaseService.initialize()
         topics = FirebaseService.get_all_topics()
@@ -311,7 +311,7 @@ def manage_topics():
 def add_topic():
     """Add a new topic to Firestore."""
     try:
-        from firebase_service import FirebaseService
+        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
         
         new_topic = request.form.get('new_topic', '').strip()
@@ -353,7 +353,7 @@ def add_topic():
 def edit_topic():
     """Edit an existing topic in Firestore."""
     try:
-        from firebase_service import FirebaseService
+        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
         
         old_topic_name = request.form.get('old_topic_name', '').strip()
@@ -391,7 +391,7 @@ def edit_topic():
 def remove_topic():
     """Remove a topic from Firestore."""
     try:
-        from firebase_service import FirebaseService
+        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
         
         topic_to_remove = request.form.get('topic', '').strip()

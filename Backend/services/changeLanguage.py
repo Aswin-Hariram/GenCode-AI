@@ -1,4 +1,4 @@
-from config import llm  # Assumes llm is a LangChain LLM instance like ChatOpenAI or Gemini
+from config.config import llm  # Assumes llm is a LangChain LLM instance like ChatOpenAI or Gemini
 import re
 
 def LangChange(code, fromLang, toLang):

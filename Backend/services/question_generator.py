@@ -1,11 +1,14 @@
 import re
-from config import llm
+from config.config import llm
 
 def generate_dsa_question(topic: str) -> dict:
     prompt = f"""
-    You are an expert Scenario DSA question generator for coding interviews in FAANG Companies.
+    You are an expert Scenario DSA question generator for coding interviews in FAANG Companies .
     Generate a fully formatted, clean Markdown output for a **Scenario Based DSA problem** based on the
     topic: "{topic} without implementating the actual logic solution in the initial code."
+
+
+    [IMPORTANT Note: MUST Dont reveal leetcode topic in initial code and solution or even in the description]
     [Note: Avoid using Bullet Points].
     1. Difficulty: Assign a difficulty level (Easy, Medium, Hard) based on the problem's complexity.
     2. Title: [Insert a relevant and concise title for the problem without revealing topic either directly or indirectly in the title]
@@ -73,6 +76,7 @@ def generate_dsa_question(topic: str) -> dict:
     - give main function with proper test case exactly like solution
     - Dont give any hints for solving the problem [MUST]
 
+    [IMPORTANT Note: MUST Dont reveal leetcode topic in initial code and solution or even in the description]
     Note: Only code, dont add objectives.
     ```
 
@@ -87,6 +91,8 @@ def generate_dsa_question(topic: str) -> dict:
     - Include comprehensive error handling and input validation
     - Provide clear, concise comments explaining the algorithm
     - Demonstrate advanced C++ techniques and modern language features
+
+    [IMPORTANT Note: MUST Dont reveal leetcode topic in initial code and solution or even in the description]
     ```
 
 

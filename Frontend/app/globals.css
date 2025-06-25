@@ -1,11 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&display=swap');
 @import "tailwindcss";
 
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Lexend', 'Lexend', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-lexend), system-ui, -apple-system, sans-serif;
 }
 /* Custom scrollbar */
 ::-webkit-scrollbar {

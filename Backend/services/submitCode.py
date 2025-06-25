@@ -1,4 +1,4 @@
-from config import llm
+from config.config import llm
 
 def submit_code(actualSolution: str, description: str, typedSolution: str, typedLanguage: str) -> dict:
     # Check if the typed solution is empty

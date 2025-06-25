@@ -9,15 +9,11 @@ const inter = Inter({ subsets: ['latin'] });
 
 export default function ClientLayout({ children }) {
   return (
-    <html lang="en" className={inter.className}>
-      <body className="antialiased">
-        <ThemeProvider>
-          <SidebarProvider>
-            {children}
-            <CombinedSidebar />
-          </SidebarProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+    <ThemeProvider>
+      <SidebarProvider>
+        {children}
+        <CombinedSidebar />
+      </SidebarProvider>
+    </ThemeProvider>
   );
 }

@@ -1,4 +1,4 @@
-from firebase_service import FirebaseService
+from services.firebase_service import FirebaseService
 from typing import List, Optional, Tuple, Dict
 import random
 
