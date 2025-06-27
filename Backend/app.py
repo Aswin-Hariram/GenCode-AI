@@ -447,7 +447,9 @@ def recent_topics():
         print(f"Error in recent_topics: {str(e)}")
         return render_template('recent_topics.html', recent_topics=[])
 
+
 @app.route('/')
+@limiter.limit("300 per minute") 
 def index():
     """Render the main index page with recent topics"""
     try:
