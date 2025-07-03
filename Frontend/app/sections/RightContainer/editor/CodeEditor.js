@@ -164,7 +164,16 @@ const CodeEditor = (props) => {
           value={code}
           theme={editorTheme}
           onChange={handleCodeChange}
-          onMount={handleEditorMount}
+          onMount={(editor, monaco) => {
+            handleEditorMount(editor, monaco);
+            // Add format document keybinding (Cmd+Shift+F)
+            editor.addCommand(
+              monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF,
+              () => {
+                editor.getAction('editor.action.formatDocument').run();
+              }
+            );
+          }}
           options={{
             fontFamily: 'Lexend, var(--font-sans), system-ui, -apple-system, sans-serif',
             fontSize: currentFontSize,
@@ -173,8 +182,9 @@ const CodeEditor = (props) => {
             automaticLayout: true,
             lineNumbers: "on",
             folding: true,
+            foldingStrategy: "auto", // advanced folding
             tabSize: 2,
-            wordWrap: "on",
+            wordWrap: "on", // wrap at editor width only
             formatOnPaste: true,
             formatOnType: true,
             quickSuggestions: autoSuggestEnabled,
@@ -191,7 +201,21 @@ const CodeEditor = (props) => {
               enabled: true
             },
             fontLigatures: true,
-            padding: { top: 10 }
+            padding: { top: 10 },
+            // --- Advanced Features ---
+            renderValidationDecorations: "on", // show error/warning markers
+            multiCursorModifier: "ctrlCmd", // multi-cursor with Ctrl/Cmd
+            find: { addExtraSpaceOnTop: true, seedSearchStringFromSelection: true },
+            findWidget: { visible: true },
+            occurrencesHighlight: true,
+            selectionHighlight: true,
+            hover: { enabled: true },
+            parameterHints: { enabled: true },
+            autoClosingBrackets: "always",
+            autoClosingQuotes: "always",
+            snippetSuggestions: "inline",
+            dragAndDrop: true,
+            copyWithSyntaxHighlighting: true
           }}
         />
       </div>
@@ -222,7 +246,7 @@ CodeEditor.propTypes = {
 CodeEditor.defaultProps = {
   language: "javascript",
   code: "",
-  fontSize: 18,
+  fontSize: 14, // reduced from 18 to 14 for more words per line
   isFullscreen: false,
   onCodeChange: null,
   onEditorMount: null,

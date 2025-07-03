@@ -117,7 +117,7 @@ def write_topics(topics):
 
 
 @app.route('/submit', methods=['POST'])
-@limiter.limit("10 per minute")  # Add rate limiting
+@limiter.limit("50 per minute")  # Add rate limiting
 def submit():
     """Handle code submission and evaluation."""
     if not request.is_json:

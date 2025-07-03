@@ -22,9 +22,10 @@ def submit_code(actualSolution: str, description: str, typedSolution: str, typed
         validation_prompt = f"""
 🤖 **Expert Code Evaluation System**
 1. Should not autocorrect or change the typed solution code.
-2. First check the code has actual logic solution to the problem other than main function. In such case return #NO ACTUAL LOGIC FOUND
-3. Your main task is to check whether the submitted solution is correct or not for the description and actual solution.
-4. You are an advanced AI programming evaluator tasked with providing a comprehensive, structured, and insightful analysis of a submitted solution.
+2. Check if the code has proper header files and imports.
+3. First check the code has actual logic solution to the problem other than main function. In such case return #NO ACTUAL LOGIC FOUND
+4. Your main task is to check whether the submitted solution is correct or not for the description and actual solution.
+5. You are an advanced AI programming evaluator tasked with providing a comprehensive, structured, and insightful analysis of a submitted solution.
 
 
 Problem Context
