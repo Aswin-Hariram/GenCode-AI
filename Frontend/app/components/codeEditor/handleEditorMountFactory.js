@@ -14,7 +14,7 @@ export default function handleEditorMountFactory({
     editorRef.current = editor;
     applyMonacoTheme(monaco, editorTheme);
     editor.updateOptions({ 
-      fontSize: currentFontSize,
+      fontSize: typeof currentFontSize === 'number' && !isNaN(currentFontSize) ? currentFontSize : 14,
       fontFamily: 'Lexend, var(--font-sans), system-ui, -apple-system, sans-serif'
     });
     editor.onDidChangeConfiguration(() => {

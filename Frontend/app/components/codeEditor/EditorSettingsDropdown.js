@@ -65,7 +65,7 @@ export default function EditorSettingsDropdown({
               -
             </button>
             <span className="px-2 py-0.5 bg-slate-800 rounded text-white min-w-6 text-center">
-              {currentFontSize}
+              {typeof currentFontSize === 'number' && !isNaN(currentFontSize) ? currentFontSize : 14}
             </span>
             <button 
               className="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-white"

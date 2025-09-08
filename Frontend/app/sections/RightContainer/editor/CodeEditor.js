@@ -176,7 +176,7 @@ const CodeEditor = (props) => {
           }}
           options={{
             fontFamily: 'Lexend, var(--font-sans), system-ui, -apple-system, sans-serif',
-            fontSize: currentFontSize,
+            fontSize: typeof currentFontSize === 'number' && !isNaN(currentFontSize) ? currentFontSize : 14,
             minimap: { enabled: true },
             scrollBeyondLastLine: false,
             automaticLayout: true,

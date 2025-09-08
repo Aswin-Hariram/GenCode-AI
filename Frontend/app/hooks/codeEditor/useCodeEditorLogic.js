@@ -35,7 +35,8 @@ export default function useCodeEditorLogic({
         if (!isNaN(parsed)) return Math.max(parsed, 16);
       }
     }
-    return initialFontSize;
+    // Ensure initialFontSize is a valid number, default to 14 if not
+    return typeof initialFontSize === 'number' && !isNaN(initialFontSize) ? initialFontSize : 16;
   });
   const [isLangChanging, setIsLangChanging] = useState(false);
 

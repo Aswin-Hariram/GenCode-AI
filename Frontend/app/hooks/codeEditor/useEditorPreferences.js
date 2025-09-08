@@ -21,7 +21,10 @@ export default function useEditorPreferences({ setLanguage, setCurrentFontSize, 
         if (editorRef.current) editorRef.current.updateOptions({ fontSize: parsedSize });
       }
     } else {
-      setCurrentFontSize(initialFontSize);
+      // Ensure initialFontSize is a valid number, default to 14 if not
+      const fontSize = typeof initialFontSize === 'number' && !isNaN(initialFontSize) ? initialFontSize : 14;
+      setCurrentFontSize(fontSize);
+      if (editorRef.current) editorRef.current.updateOptions({ fontSize: fontSize });
     }
     if (storedTheme) setEditorTheme(storedTheme);
     if (storedAutoSuggest !== null) setAutoSuggestEnabled(storedAutoSuggest === "true");
