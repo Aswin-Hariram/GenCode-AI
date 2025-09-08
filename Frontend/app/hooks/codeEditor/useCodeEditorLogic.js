@@ -94,37 +94,97 @@ export default function useCodeEditorLogic({
   }, [onToggleFullscreen]);
 
   const handleLangChange = async (newLang) => {
-    if (!newLang || newLang === currentLanguage || isLangChanging) return;
+    // Validate inputs
+    if (!newLang) {
+      setError('Invalid language selection');
+      return;
+    }
+    
+    if (newLang === currentLanguage) {
+      // Already using this language
+      return;
+    }
+    
+    if (isLangChanging) {
+      // Prevent multiple simultaneous language change requests
+      setError('Language change already in progress');
+      return;
+    }
+    
     setIsLangChanging(true);
     setError(null);
+    
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/changeLanguage`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code: problemData?.initial_code,
-            fromLang: currentLanguage,
-            toLang: newLang
-          }),
-        }
-      );
+      // Check network connectivity first
+      if (!navigator.onLine) {
+        throw new Error('No internet connection. Please check your network and try again.');
+      }
+      
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/changeLanguage`;
+      
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: problemData?.initial_code || '',
+          fromLang: currentLanguage,
+          toLang: newLang
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to change language');
+        const statusMessage = {
+          400: 'Invalid request format',
+          401: 'Authentication required',
+          403: 'Permission denied',
+          404: 'Language conversion service not found',
+          429: 'Too many requests, please try again later',
+          500: 'Server error occurred during language conversion',
+          503: 'Language conversion service unavailable'
+        }[response.status] || 'Failed to change language';
+        
+        throw new Error(errorData.message || statusMessage);
       }
+      
       const data = await response.json();
-      setError(null);
+      
+      if (!data || !data.code) {
+        throw new Error('Received invalid data from language conversion service');
+      }
+      
+      // Update editor with new code
       if (editorRef.current) {
         editorRef.current.setValue(data.code);
         if (onCodeChange) onCodeChange(data.code);
       }
+      
+      // Update language settings
       setCurrentLanguage(newLang);
       localStorage.setItem(EDITOR_LANG_KEY, newLang);
       setLanguage?.(newLang);
+      
+      // Log successful language change
+      console.log(`Language changed successfully from ${currentLanguage} to ${newLang}`);
     } catch (err) {
-      setError(err.message || 'An error occurred while changing language');
+      // Handle specific error types
+      if (err.name === 'AbortError') {
+        setError('Language change request timed out. Please try again.');
+      } else if (err.message.includes('fetch')) {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError(err.message || 'An error occurred while changing language');
+      }
+      
+      // Log error for debugging
+      console.error('Language change error:', err);
     } finally {
       setIsLangChanging(false);
     }
