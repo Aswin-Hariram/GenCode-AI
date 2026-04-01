@@ -225,6 +225,7 @@ def changeLanguage():
 @app.route('/get_dsa_question', methods=['GET'])
 def get_dsa_question():
     """Generate a DSA question based on the provided topic or a random one if not specified."""
+    started_at = time.perf_counter()
     try:
         from services.firebase_service import FirebaseService
         FirebaseService.initialize()
@@ -244,7 +245,7 @@ def get_dsa_question():
             topic = topic_details['name']
         
         # Generate DSA question using the selected topic
-        print(f"Generating DSA question for topic: {topic}")
+        logger.info("Generating DSA question for topic: %s", topic)
         result = generate_dsa_question(topic)
         
         # Ensure topic is a string and clean it up
@@ -269,10 +270,13 @@ def get_dsa_question():
                 
         result['difficulty'] = topic_details.get('difficulty', 'medium').lower() if isinstance(topic_details, dict) else 'medium'
         
+        elapsed = time.perf_counter() - started_at
+        logger.info("Generated DSA question for topic '%s' in %.2fs", topic_str, elapsed)
         return jsonify(result)
     except Exception as e:
+        elapsed = time.perf_counter() - started_at
         error_details = traceback.format_exc()
-        print(f"Error in get_dsa_question: {error_details}")
+        logger.error("Error in get_dsa_question after %.2fs: %s", elapsed, error_details)
         # Error generating DSA question
         return jsonify({
             'error': f'Failed to generate question: {str(e)}',

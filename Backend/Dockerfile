@@ -26,8 +26,12 @@ COPY . .
 # Set environment variables
 ENV FLASK_APP=app.py \
     FLASK_ENV=production \
-    PORT=8000
+    PORT=8000 \
+    WEB_CONCURRENCY=1 \
+    GUNICORN_THREADS=2 \
+    GUNICORN_TIMEOUT=180 \
+    GUNICORN_GRACEFUL_TIMEOUT=30
 
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-1} --threads ${GUNICORN_THREADS:-2} --timeout ${GUNICORN_TIMEOUT:-180} --graceful-timeout ${GUNICORN_GRACEFUL_TIMEOUT:-30} app:app"]
