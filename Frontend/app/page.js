@@ -1,11 +1,5 @@
+import ClientPage from './ClientPage';
 
-import React from 'react'
-import GenCode from './pages/Gencode'
-
-function page() {
-  return (
-    <GenCode />
-  )
+export default function Page() {
+  return <ClientPage />;
 }
-
-export default page

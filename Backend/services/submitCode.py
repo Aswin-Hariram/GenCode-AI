@@ -1,4 +1,4 @@
-from config.config import llm
+from config.config import get_llm
 
 def submit_code(actualSolution: str, description: str, typedSolution: str, typedLanguage: str) -> dict:
     # Check if the typed solution is empty
@@ -132,7 +132,7 @@ Test Requirements:
         """
 
         # Use the LLM to generate evaluation
-        evaluation = llm.invoke(validation_prompt).content
+        evaluation = get_llm().invoke(validation_prompt).content
 
         # Format the markdown report with enhanced styling
         markdown_report = f"""

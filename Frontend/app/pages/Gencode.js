@@ -145,7 +145,7 @@ const GenCode = () => {
         <div className="flex flex-col h-full">
           <CodeEditor
             language={language}
-            code={problemData.initial_code}
+            code={code}
             fontSize={14}
             isFullscreen={isFullscreen}
             onCodeChange={handleEditorChange}

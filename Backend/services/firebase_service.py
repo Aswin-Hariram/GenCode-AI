@@ -4,16 +4,32 @@ import os
 import random
 from datetime import timedelta
 
+
+SERVICE_ACCOUNT_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    'serviceAccountKey.json'
+)
+
 class FirebaseService:
     _instance = None
     
     @classmethod
     def initialize(cls):
-        if not cls._instance:
-            cred = credentials.Certificate('serviceAccountKey.json')
-            firebase_admin.initialize_app(cred)
+        if cls._instance:
+            return
+
+        if not os.path.exists(SERVICE_ACCOUNT_PATH):
+            raise FileNotFoundError(
+                f"Firebase service account key not found at {SERVICE_ACCOUNT_PATH}"
+            )
+
+        if firebase_admin._apps:
             cls._instance = firebase_admin.get_app()
-            cls.db = firestore.client()
+        else:
+            cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
+            cls._instance = firebase_admin.initialize_app(cred)
+
+        cls.db = firestore.client()
     
     @classmethod
     def get_db(cls):

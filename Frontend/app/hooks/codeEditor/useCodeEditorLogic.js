@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import applyMonacoTheme from "./applyMonacoTheme";
+import { storageGet, storageSet } from "../../utils/storage";
+import { getChangeLanguageUrl } from "../../utils/api";
 
 export default function useCodeEditorLogic({
   language,
@@ -20,28 +22,17 @@ export default function useCodeEditorLogic({
   const editorRef = useRef(null);
   const prevLangRef = useRef(currentLanguage);
   const [autoSuggestEnabled, setAutoSuggestEnabled] = useState(true);
-  const [editorTheme, setEditorTheme] = useState(() => {
-    const storedTheme = typeof window !== 'undefined' ? localStorage.getItem('editor-theme') : null;
-    return storedTheme || 'vs-dark';
-  });
+  const [editorTheme, setEditorTheme] = useState("vs-dark");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsRef = useRef(null);
   const settingsButtonRef = useRef(null);
-  const [currentFontSize, setCurrentFontSize] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('editor-font');
-      if (stored) {
-        const parsed = parseInt(stored, 10);
-        if (!isNaN(parsed)) return Math.max(parsed, 16);
-      }
-    }
-    // Ensure initialFontSize is a valid number, default to 14 if not
-    return typeof initialFontSize === 'number' && !isNaN(initialFontSize) ? initialFontSize : 16;
-  });
+  const [currentFontSize, setCurrentFontSize] = useState(
+    typeof initialFontSize === 'number' && !isNaN(initialFontSize) ? initialFontSize : 16
+  );
   const [isLangChanging, setIsLangChanging] = useState(false);
 
   useEffect(() => {
-    const savedLanguage = localStorage.getItem(EDITOR_LANG_KEY);
+    const savedLanguage = storageGet(EDITOR_LANG_KEY);
     if (savedLanguage) setCurrentLanguage(savedLanguage);
   }, []);
 
@@ -62,15 +53,15 @@ export default function useCodeEditorLogic({
   }, [isSettingsOpen]);
 
   useEffect(() => {
-    const storedLang = localStorage.getItem("editor-lang");
-    const storedFont = localStorage.getItem("editor-font");
-    const storedTheme = localStorage.getItem("editor-theme");
-    const storedAutoSuggest = localStorage.getItem("editor-auto-suggest");
+    const storedLang = storageGet("editor-lang");
+    const storedFont = storageGet("editor-font");
+    const storedTheme = storageGet("editor-theme");
+    const storedAutoSuggest = storageGet("editor-auto-suggest");
     if (storedLang) {
       setLanguage(storedLang);
     } else {
       setLanguage("cpp");
-      localStorage.setItem("editor-lang", "cpp");
+      storageSet("editor-lang", "cpp");
     }
     if (storedFont) {
       const parsedSize = parseInt(storedFont);
@@ -120,7 +111,7 @@ export default function useCodeEditorLogic({
         throw new Error('No internet connection. Please check your network and try again.');
       }
       
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/changeLanguage`;
+      const apiUrl = getChangeLanguageUrl();
       
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
@@ -168,7 +159,7 @@ export default function useCodeEditorLogic({
       
       // Update language settings
       setCurrentLanguage(newLang);
-      localStorage.setItem(EDITOR_LANG_KEY, newLang);
+      storageSet(EDITOR_LANG_KEY, newLang);
       setLanguage?.(newLang);
       
       // Log successful language change
@@ -197,7 +188,7 @@ export default function useCodeEditorLogic({
     editor.onDidChangeConfiguration(() => {
       const opts = editor.getRawOptions();
       if (opts.fontSize) {
-        localStorage.setItem("editor-font", opts.fontSize.toString());
+        storageSet("editor-font", opts.fontSize.toString());
         setCurrentFontSize(opts.fontSize);
       }
     });
@@ -231,7 +222,7 @@ export default function useCodeEditorLogic({
   const toggleAutoSuggest = () => {
     const newValue = !autoSuggestEnabled;
     setAutoSuggestEnabled(newValue);
-    localStorage.setItem("editor-auto-suggest", newValue.toString());
+    storageSet("editor-auto-suggest", newValue.toString());
     if (editorRef.current) {
       editorRef.current.updateOptions({
         quickSuggestions: newValue,
@@ -247,7 +238,7 @@ export default function useCodeEditorLogic({
   const handleThemeToggle = () => {
     const newTheme = editorTheme === "vs-dark" ? "light" : "vs-dark";
     setEditorTheme(newTheme);
-    localStorage.setItem("editor-theme", newTheme);
+    storageSet("editor-theme", newTheme);
   };
 
   const changeFontSize = (delta) => {
@@ -255,7 +246,7 @@ export default function useCodeEditorLogic({
     const newSize = Math.max(10, Math.min(currentFontSize + delta, 30));
     setCurrentFontSize(newSize);
     editorRef.current.updateOptions({ fontSize: newSize });
-    localStorage.setItem("editor-font", newSize.toString());
+    storageSet("editor-font", newSize.toString());
   };
 
   useEffect(() => {

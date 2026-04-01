@@ -1,18 +1,19 @@
 import { useEffect } from "react";
+import { storageGet, storageSet } from "../../utils/storage";
 
 // No unused imports or functions found in this file.
 
 export default function useEditorPreferences({ setLanguage, setCurrentFontSize, setEditorTheme, setAutoSuggestEnabled, editorRef, initialFontSize }) {
   useEffect(() => {
-    const storedLang = localStorage.getItem("editor-lang");
-    const storedFont = localStorage.getItem("editor-font");
-    const storedTheme = localStorage.getItem("editor-theme");
-    const storedAutoSuggest = localStorage.getItem("editor-auto-suggest");
+    const storedLang = storageGet("editor-lang");
+    const storedFont = storageGet("editor-font");
+    const storedTheme = storageGet("editor-theme");
+    const storedAutoSuggest = storageGet("editor-auto-suggest");
     if (storedLang) {
       setLanguage(storedLang);
     } else {
       setLanguage("cpp");
-      localStorage.setItem("editor-lang", "cpp");
+      storageSet("editor-lang", "cpp");
     }
     if (storedFont) {
       const parsedSize = parseInt(storedFont);

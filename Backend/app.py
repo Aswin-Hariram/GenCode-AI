@@ -120,38 +120,30 @@ def write_topics(topics):
 @limiter.limit("50 per minute")  # Add rate limiting
 def submit():
     """Handle code submission and evaluation."""
-    if not request.is_json:
-        # Invalid request format
+    data = request.get_json(silent=True)
+    if data is None:
         return jsonify({
             'result': 'Failure',
             'message': 'Invalid request format. JSON required.'
         }), 400
-        
-    # Retrieve code from the request body
+
     try:
-        actualSolution = request.json.get('actualSolution')
-        description = request.json.get('description')
-        typedSolution = request.json.get('typedSolution')
-        typedLanguage = request.json.get('language')
-        
-        # Validate required fields
+        actualSolution = data.get('actualSolution')
+        description = data.get('description')
+        typedSolution = data.get('typedSolution')
+        typedLanguage = data.get('language')
+
         if not all([description, typedSolution, typedLanguage]):
-            # Missing required fields
             return jsonify({
                 'result': 'Failure',
                 'message': 'Missing required fields in submission.'
             }), 400
 
-        # Pass the code to submit_code function
-        # Processing code submission
         result = submit_code(actualSolution, description, typedSolution, typedLanguage)
-
-        # Check the result and respond accordingly
         return jsonify(result)
 
     except Exception as e:
-        error_details = traceback.format_exc()
-        # Error in code submission
+        logger.exception("Error while processing submission")
         return jsonify({
             'result': 'Failure',
             'message': f'Error while processing submission: {str(e)}'
@@ -162,21 +154,18 @@ def submit():
 @app.route('/compiler', methods=['POST'])
 def compile():
     """Compile and run code."""
-    if not request.is_json:
-        # Invalid request format
+    data = request.get_json(silent=True)
+    if data is None:
         return jsonify({
             'result': 'Failure',
             'message': 'Invalid request format. JSON required.'
         }), 400
-        
+
     try:
-        # Retrieve code from the request body
-        lang = request.json.get('lang')
-        code = request.json.get('code')
-        
-        # Validate required fields
+        lang = data.get('lang')
+        code = data.get('code')
+
         if not lang or code is None:
-            # Missing required fields for compilation
             return jsonify({
                 'result': 'Failure',
                 'message': 'Both language and code are required.'
@@ -188,17 +177,11 @@ def compile():
                 'message': 'cannot compile empty code'
             }), 400
 
-        # Pass the code to compile_code function
-        # Compiling code
-        
         result = compile_code(code, lang)
-
-        # Check the result and respond accordingly
         return jsonify(result)
 
     except Exception as e:
-        error_details = traceback.format_exc()
-        # Error during compilation
+        logger.exception("Error while compiling code")
         return jsonify({
             'result': 'Failure',
             'message': f'Error while compiling: {str(e)}'
@@ -208,24 +191,29 @@ def compile():
 @app.route('/changeLanguage', methods=['POST'])
 def changeLanguage():
     """Convert the initial code from one language to another language"""
-    if not request.is_json:
-    # Invalid request format
+    data = request.get_json(silent=True)
+    if data is None:
         return jsonify({
             'result': 'Failure',
             'message': 'Invalid request format. JSON required.'
         }), 400
-        # Retrieve code from the request body
+
     try:
-        fromLang = request.json.get('fromLang')
-        toLang = request.json.get('toLang')
-        code = request.json.get('code')
+        fromLang = data.get('fromLang')
+        toLang = data.get('toLang')
+        code = data.get('code')
+
+        if not fromLang or not toLang or code is None:
+            return jsonify({
+                'result': 'Failure',
+                'message': 'Code, source language, and target language are required.'
+            }), 400
 
         result = LangChange(code, fromLang, toLang)
 
         return jsonify(result)
     except Exception as e:
-        error_details = traceback.format_exc()
-        # Error in code submission
+        logger.exception("Error while changing language")
         return jsonify({
             'result': 'Failure',
             'message': f'Error while processing submission: {str(e)}'
@@ -568,10 +556,14 @@ def api_ask_help_to_ai():
         }
     }   
     """
-    try:
-        data = request.get_json()
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({
+            'success': False,
+            'error': 'Invalid request format. JSON required.'
+        }), 400
 
-        sender = data.get('sender', 'user')
+    try:
         message = data.get('message', '')
         language = data.get('language', 'cpp')
         problem_description = data.get('problem Description', '')
@@ -579,7 +571,6 @@ def api_ask_help_to_ai():
         initial_code = data.get('initial code', '')
         user_code_progress = data.get('user_code_progress', '')
 
-        # Fix: check for problem_description and problem_topic instead of problem_data
         if not message or not problem_description or not problem_topic:
             return jsonify({
                 'success': False,
@@ -592,7 +583,7 @@ def api_ask_help_to_ai():
         return jsonify(response) 
 
     except Exception as e:
-        
+        logger.exception("Failed to process ask-help request")
         return jsonify({
             'success': False,
             'error': f'Failed to process request: {str(e)}'
@@ -621,7 +612,7 @@ def api_all_topics():
     offset = max(offset, 0)
 
     try:
-        # Re-use the singleton Firestore client managed by FirebaseService
+        FirebaseService.initialize()
         topics = FirebaseService.get_all_topics()
     except Exception as exc:
         logger.exception("Failed to fetch topics from Firestore")
@@ -632,218 +623,19 @@ def api_all_topics():
         }), 500
 
     if not topics:
-        return jsonify({"success": False, "error": "No topics found", "data": []}), 404
+        return jsonify({"success": True, "data": []})
 
-    # Sort alphabetically for stable pagination
-    topics.sort(key=lambda t: t['name'])
+    topics.sort(key=lambda t: t.get('name', '').lower())
     paginated = topics[offset: offset + limit]
 
     formatted = [{
         "id": str(i + offset + 1),
-        "name": t['name'].replace(' ', '_').lower().strip('_'),
+        "name": t.get('name', '').replace(' ', '_').lower().strip('_'),
         "category": t.get('category', 'Uncategorized'),
         "difficulty": t.get('difficulty', 'medium')
     } for i, t in enumerate(paginated)]
 
     return jsonify({"success": True, "data": formatted})
-    
-    try:
-        print(f"\n[DEBUG] Python path: {sys.path}", flush=True)
-        print(f"[DEBUG] Current working directory: {os.getcwd()}", flush=True)
-        
-        # Pagination parameters from query string
-        limit = request.args.get('limit', default=10, type=int)
-        offset = request.args.get('offset', default=0, type=int)
-        # Sanitize values
-        if limit < 1:
-            limit = 1
-        if limit > 100:
-            limit = 10  # hard-cap to prevent excessive reads
-        if offset < 0:
-            offset = 0
-
-        
-        # Import required Firebase modules
-        try:
-            import firebase_admin
-            from firebase_admin import credentials, firestore
-            
-            # Initialize Firebase Admin SDK if not already initialized
-            if not firebase_admin._apps:
-                # Use the service account key from the current directory
-                service_account_path = os.path.join(os.path.dirname(__file__), 'serviceAccountKey.json')
-                print(f"[DEBUG] Using service account key from: {service_account_path}", flush=True)
-                
-                if not os.path.exists(service_account_path):
-                    error_msg = f"Service account key not found at: {service_account_path}"
-                    print(f"[ERROR] {error_msg}", flush=True)
-                    return jsonify({
-                        'success': False,
-                        'error': 'Service account key not found',
-                        'details': error_msg
-                    }), 500
-                
-                try:
-                    cred = credentials.Certificate(service_account_path)
-                    firebase_admin.initialize_app(cred)
-                    print("[DEBUG] Firebase Admin SDK initialized successfully", flush=True)
-                except Exception as e:
-                    error_msg = f"Failed to initialize Firebase Admin SDK: {str(e)}"
-                    print(f"[ERROR] {error_msg}", flush=True)
-                    traceback.print_exc()
-                    return jsonify({
-                        'success': False,
-                        'error': 'Failed to initialize Firebase',
-                        'details': str(e),
-                        'type': type(e).__name__
-                    }), 500
-            
-            # Get Firestore client
-            try:
-                db = firestore.client()
-                print("[DEBUG] Firestore client created successfully", flush=True)
-            except Exception as e:
-                error_msg = f"Failed to create Firestore client: {str(e)}"
-                print(f"[ERROR] {error_msg}", flush=True)
-                traceback.print_exc()
-                return jsonify({
-                    'success': False,
-                    'error': 'Failed to connect to Firestore',
-                    'details': str(e),
-                    'type': type(e).__name__
-                }), 500
-            
-            # List all collections to check available collections
-            try:
-                print("[DEBUG] Listing all collections in Firestore...", flush=True)
-                collections = list(db.collections())  # Convert to list to avoid timeout
-                collection_names = [collection.id for collection in collections]
-                print(f"[DEBUG] Available collections: {collection_names}", flush=True)
-            except Exception as e:
-                error_msg = f"Failed to list collections: {str(e)}"
-                print(f"[ERROR] {error_msg}", flush=True)
-                traceback.print_exc()
-                return jsonify({
-                    'success': False,
-                    'error': 'Failed to list Firestore collections',
-                    'details': str(e),
-                    'type': type(e).__name__
-                }), 500
-            
-            # Check if 'dsa_topics' collection exists
-            collection_name = 'dsa_topics'
-            if collection_name not in collection_names:
-                print(f"[WARNING] Collection '{collection_name}' not found in Firestore", flush=True)
-                return jsonify({
-                    'success': False,
-                    'error': f'Collection {collection_name} not found',
-                    'available_collections': collection_names,
-                    'data': []
-                }), 404
-            
-            # Get all topics from the collection
-            try:
-                print(f"[DEBUG] Fetching topics from '{collection_name}' collection...", flush=True)
-                topics_ref = db.collection(collection_name)
-                docs = list(
-                    topics_ref.offset(offset).limit(limit).stream()
-                )
-                
-                print(f"[DEBUG] Found {len(docs)} documents in '{collection_name}' collection", flush=True)
-                
-                # Convert Firestore documents to a list of dictionaries
-                topics = []
-                for doc in docs:
-                    try:
-                        topic_data = doc.to_dict()
-                        topic_data['id'] = doc.id
-                        # Use document ID as the topic name if 'name' field doesn't exist
-                        if 'name' not in topic_data or not topic_data['name']:
-                            topic_data['name'] = doc.id
-                        topics.append(topic_data)
-                    except Exception as e:
-                        print(f"[ERROR] Error processing document {doc.id}: {str(e)}", flush=True)
-                        continue
-                
-                print(f"[DEBUG] Retrieved {len(topics)} topics from Firestore", flush=True)
-                
-                if not topics:
-                    print("[WARNING] No topics found in Firestore", flush=True)
-                    return jsonify({
-                        'success': False,
-                        'error': 'No topics found',
-                        'data': []
-                    }), 404
-                
-                # Format the response
-                print("\n[DEBUG] Formatting topics...", flush=True)
-                formatted_topics = []
-                for i, topic in enumerate(topics, offset + 1):
-                    try:
-                        # Ensure we have a valid topic name
-                        if not topic or not isinstance(topic, dict):
-                            print(f"[WARNING] Skipping invalid topic: {topic}", flush=True)
-                            continue
-                            
-                        topic_name = str(topic.get('name', '')).strip()
-                        if not topic_name:
-                            print(f"[WARNING] Skipping topic {i} - empty name", flush=True)
-                            continue
-                            
-                        formatted_topic = {
-                            'id': str(i),
-                            'name': topic_name.replace(' ', '_').lower().strip('_'),
-                            'category': str(topic.get('category', 'Uncategorized')).strip(),
-                            'difficulty': str(topic.get('difficulty', 'medium')).strip()
-                        }
-                        formatted_topics.append(formatted_topic)
-                        
-                    except Exception as e:
-                        print(f"[ERROR] Error formatting topic {i}: {str(e)}", flush=True)
-                        print(f"[DEBUG] Topic data: {topic}", flush=True)
-                        continue
-                
-                print(f"[SUCCESS] Successfully formatted {len(formatted_topics)} topics", flush=True)
-                print("="*80 + "\n", flush=True)
-                
-                return jsonify({
-                    'success': True,
-                    'data': formatted_topics
-                })
-                
-            except Exception as e:
-                error_msg = f"Error fetching topics from Firestore: {str(e)}"
-                print(f"[ERROR] {error_msg}", flush=True)
-                traceback.print_exc()
-                return jsonify({
-                    'success': False,
-                    'error': 'Failed to fetch topics from Firestore',
-                    'details': str(e),
-                    'type': type(e).__name__
-                }), 500
-            
-        except ImportError as e:
-            error_msg = f"Failed to import Firebase modules: {str(e)}"
-            print(f"[ERROR] {error_msg}", flush=True)
-            traceback.print_exc()
-            return jsonify({
-                'success': False,
-                'error': 'Failed to import required Firebase modules',
-                'details': str(e),
-                'type': 'ImportError'
-            }), 500
-            
-    except Exception as e:
-        error_msg = f"Unexpected error in api_all_topics: {str(e)}"
-        print(f"\n[CRITICAL] {error_msg}", flush=True)
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'error': 'An unexpected error occurred',
-            'details': str(e),
-            'type': type(e).__name__,
-            'traceback': traceback.format_exc()
-        }), 500
 
 if __name__ == "__main__":
     # Enable debug mode and detailed error messages

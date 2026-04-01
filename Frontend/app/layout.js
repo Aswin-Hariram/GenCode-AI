@@ -1,3 +1,4 @@
+import './serverLocalStorageShim';
 import './globals.css';
 import ClientLayout from './ClientLayout';
 import { Lexend } from 'next/font/google';

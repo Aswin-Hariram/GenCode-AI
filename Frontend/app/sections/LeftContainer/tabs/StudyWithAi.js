@@ -4,12 +4,14 @@ import InputContainer from '../../../components/problem/studywithai/InputContain
 import MessageContainer from '../../../components/problem/studywithai/messageContainer';
 import Header from '../../../components/problem/studywithai/Header';
 import AskHelp from '../../../components/problem/studywithai/AskHelp'
+import { storageGet, storageRemove, storageSet } from '../../../utils/storage';
+import { getAskHelpUrl, requestJson } from '../../../utils/api';
 
 
 function StudyWithAi({ problemData }) {
 
   const getInitialMessages = () => {
-    const stored = localStorage.getItem('studyWithAiMessages');
+    const stored = storageGet('studyWithAiMessages');
     if (stored) {
       try {
         return JSON.parse(stored);
@@ -25,13 +27,17 @@ function StudyWithAi({ problemData }) {
   const [messages, setMessages] = useState(getInitialMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [askedHelp, setAskedHelp] = useState(
-    JSON.parse(localStorage.getItem('askedHelp') || 'false')
-  );
+  const [askedHelp, setAskedHelp] = useState(() => {
+    try {
+      return JSON.parse(storageGet('askedHelp', 'false'));
+    } catch {
+      return false;
+    }
+  });
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('studyWithAiMessages', JSON.stringify(messages));
+    storageSet('studyWithAiMessages', JSON.stringify(messages));
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -41,7 +47,7 @@ function StudyWithAi({ problemData }) {
 
   const handleAskHelp = () => {
     setAskedHelp(true);
-    localStorage.setItem('askedHelp', 'true');
+    storageSet('askedHelp', 'true');
     const welcomeMsg = [
       {
         sender: 'ai',
@@ -56,7 +62,8 @@ function StudyWithAi({ problemData }) {
     setInput('');
     setIsTyping(false);
     setAskedHelp(false);
-    localStorage.removeItem('studyWithAiMessages');
+    storageRemove('askedHelp');
+    storageRemove('studyWithAiMessages');
   }
 
   const handleSend = async (e) => {
@@ -74,14 +81,14 @@ function StudyWithAi({ problemData }) {
       const payload = {
         sender: 'user',
         message: input,
-        language: localStorage.getItem('editor-lang') || 'cpp',
+        language: storageGet('editor-lang', 'cpp'),
         'problem Description': problemData.description || {},
         'problem Topic': problemData.realtopic || '',
         'initial code': problemData.initial_code || '',
-        user_code_progress: localStorage.getItem('editor-code') || '',
+        user_code_progress: storageGet('editor-code', ''),
       };
       console.log('Sending payload to AI:', payload);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ask-help-to-ai`, {
+      const data = await requestJson(getAskHelpUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,12 +96,8 @@ function StudyWithAi({ problemData }) {
           'Pragma': 'no-cache',
         },
         body: JSON.stringify(payload),
+        timeoutMs: 25000,
       });
-      if (!response.ok) {
-        console.error('Failed to fetch AI response');
-        throw new Error('Network response was not ok');
-      }
-      const data = await response.json();
       console.log('AI response:', data);
       // Add AI response to messages
       setMessages((prev) => [

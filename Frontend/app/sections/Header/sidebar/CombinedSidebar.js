@@ -11,6 +11,7 @@ import SidebarTopicCard from '../../../components/sidebar/SidebarTopicCard';
 import SidebarFilterHeader from '../../../components/sidebar/SidebarFilterHeader';
 import useSidebarResize from '../../../hooks/sidebar/useSidebarResize';
 import SidebarResizeHandle from '../../../elements/sidebar/SidebarResizeHandle';
+import { storageGet, storageSet } from '../../../utils/storage';
 
 const CombinedSidebar = () => {
   // Ref used as the "sentinel" element for triggering infinite scroll when
@@ -72,7 +73,7 @@ const CombinedSidebar = () => {
   const handleResizeMouseUp = useCallback(() => {
     if (isResizing) {
       setIsResizing(false);
-      localStorage.setItem('sidebarWidth', sidebarWidth.toString());
+      storageSet('sidebarWidth', sidebarWidth.toString());
     }
   }, [isResizing, sidebarWidth, setIsResizing]);
 
@@ -88,7 +89,7 @@ const CombinedSidebar = () => {
   }, [isResizing, setSidebarWidth]);
 
   useEffect(() => {
-    const savedWidth = localStorage.getItem('sidebarWidth');
+    const savedWidth = storageGet('sidebarWidth');
     if (savedWidth) {
       const parsedWidth = parseInt(savedWidth, 10);
       const minWidth = 300;

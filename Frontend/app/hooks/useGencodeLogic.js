@@ -2,15 +2,44 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { INITIAL_CODE } from '../utils/constants';
 import { useTheme } from '../context/ThemeContext';
 import { FiFileText, FiCode, FiBarChart2, FiZap } from 'react-icons/fi';
+import { storageGet, storageSet } from '../utils/storage';
+import { getCompilerUrl, getQuestionUrl, getSubmitUrl, requestJson } from '../utils/api';
 
 const EDITOR_LANG_KEY = 'editor-lang';
+const EDITOR_CODE_KEY = 'editor-code';
 const DEFAULT_LANGUAGE = 'cpp';
+const DEFAULT_PROBLEM_DATA = {
+  title: '',
+  difficulty: '',
+  description: '',
+  realtopic: '',
+  testcases: [],
+  solution: '',
+  space_complexity: '',
+  time_complexity: '',
+  initial_code: '',
+};
+
+function normalizeProblemData(data, fallbackTitle = '') {
+  return {
+    ...DEFAULT_PROBLEM_DATA,
+    title: data?.title || fallbackTitle,
+    description: data?.markdown || data?.description || '',
+    solution: data?.solution || '',
+    testcases: Array.isArray(data?.testcases) ? data.testcases : [],
+    difficulty: data?.difficulty || 'Medium',
+    time_complexity: data?.time_complexity || 'O(n)',
+    space_complexity: data?.space_complexity || 'O(1)',
+    initial_code: data?.initial_code || INITIAL_CODE,
+    realtopic: data?.realtopic || fallbackTitle,
+  };
+}
 
 export default function useGencodeLogic() {
   const { theme, toggleTheme } = useTheme();
   const [code, setCode] = useState(INITIAL_CODE);
   const [activeTab, setActiveTab] = useState('description');
-  const [language, setLanguage] = useState('cpp');
+  const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [response, setResponse] = useState(null);
@@ -23,99 +52,78 @@ export default function useGencodeLogic() {
   const editorRef = useRef(null);
   const consoleHeight = useRef(200);
 
-  const [problemData, setProblemData] = useState({
-    title: '',
-    difficulty: '',
-    description: '',
-    realtopic: '',
-    testcases: [],
-    solution: '',
-    space_complexity: '',
-    time_complexity: '',
-    initial_code: '',
-  });
-
+  const [problemData, setProblemData] = useState(DEFAULT_PROBLEM_DATA);
   const [isLoading, setIsLoading] = useState(true);
   const [problemError, setProblemError] = useState(null);
 
-  
-  const generateNewProblem = useCallback(async () => {
+  const resetProblemWorkspace = useCallback(() => {
     setActiveTab('description');
     setResponse(null);
     setStatusData(null);
     setCompilationResult(null);
     setIsConsoleOpen(false);
-    setIsLoading(true);
+    setActiveTestCase(0);
+    setError(null);
     setProblemError(null);
-    setLanguage('cpp');
+  }, []);
+
+  const applyProblemData = useCallback((data, fallbackTitle = '') => {
+    const nextProblemData = normalizeProblemData(data, fallbackTitle);
+    setProblemData(nextProblemData);
+    setCode(nextProblemData.initial_code);
+    storageSet(EDITOR_CODE_KEY, nextProblemData.initial_code);
+    return nextProblemData;
+  }, []);
+
+  const generateNewProblem = useCallback(async () => {
+    resetProblemWorkspace();
+    setIsLoading(true);
+    setLanguage(DEFAULT_LANGUAGE);
+    storageSet(EDITOR_LANG_KEY, DEFAULT_LANGUAGE);
+
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${process.env.NEXT_PUBLIC_GET_QUESTION_ENDPOINT}`, {
+      const data = await requestJson(getQuestionUrl(), {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
+          Pragma: 'no-cache',
         },
       });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setProblemData({
-        title: data.title,
-        description: data.markdown,
-        solution: data.solution,
-        testcases: data.testcases,
-        difficulty: data.difficulty,
-        time_complexity: data.time_complexity,
-        space_complexity: data.space_complexity,
-        initial_code: data.initial_code,
-        realtopic: data.realtopic,
-      });
+
+      applyProblemData(data);
     } catch (err) {
       setProblemError(err.message || 'An unexpected error occurred');
+      setCode(INITIAL_CODE);
+      storageSet(EDITOR_CODE_KEY, INITIAL_CODE);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [applyProblemData, resetProblemWorkspace]);
 
   const fetchQuestionForTopic = useCallback(async (topic) => {
-    setResponse(null);
-    setStatusData(null);
-    setCompilationResult(null);
-    setIsConsoleOpen(false);
+    resetProblemWorkspace();
+    setIsLoading(true);
+    setLanguage(DEFAULT_LANGUAGE);
+    storageSet(EDITOR_LANG_KEY, DEFAULT_LANGUAGE);
+
     try {
-      setIsLoading(true);
-      setProblemError(null);
-      if (!localStorage.getItem(EDITOR_LANG_KEY)) {
-        localStorage.setItem(EDITOR_LANG_KEY, DEFAULT_LANGUAGE);
-      }
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/get_dsa_question?topic=${encodeURIComponent(topic)}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch question: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setProblemData((prevData) => ({
-        ...prevData,
-        title: data.title || topic,
-        description: data.markdown || '',
-        solution: data.solution || '',
-        testcases: data.testcases || [],
-        difficulty: data.difficulty || 'Medium',
-        time_complexity: data.time_complexity || 'O(n)',
-        space_complexity: data.space_complexity || 'O(1)',
-        initial_code: data.initial_code || '',
-      }));
-      if (data.initial_code) {
-        localStorage.setItem('editor-lang', 'cpp');
-        setCode(data.initial_code);
-      }
-      setActiveTab('description');
-    } catch (error) {
-      setProblemError(error.message || 'Failed to load question');
+      const data = await requestJson(getQuestionUrl(topic), {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        },
+      });
+
+      applyProblemData(data, topic);
+    } catch (err) {
+      setProblemError(err.message || 'Failed to load question');
+      setCode(INITIAL_CODE);
+      storageSet(EDITOR_CODE_KEY, INITIAL_CODE);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [applyProblemData, resetProblemWorkspace]);
 
   const effectRan = useRef(false);
   useEffect(() => {
@@ -176,66 +184,68 @@ export default function useGencodeLogic() {
   const handleSubmitCode = async (submissionData) => {
     setIsSubmitting(true);
     setError(null);
+
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${process.env.NEXT_PUBLIC_SUBMIT_ENDPOINT}`, {
+      const result = await requestJson(getSubmitUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...submissionData,
-          code: code,
+          code,
           language: language.toLowerCase(),
           problem_id: problemData?.id || 'unknown',
         }),
       });
-      if (!response.ok) {
-        throw new Error(`Submission failed with status: ${response.status}`);
-      }
-      const result = await response.json();
+
       const newSubmission = {
         id: `sub_${Date.now()}`,
         status: result.status || (result.markdown_report?.includes('Accepted') ? 'Accepted' : 'Failed'),
-        language: language,
+        language,
         runtime: result.runtime || 'N/A',
         memory: result.memory_used || 'N/A',
         timestamp: new Date().toISOString(),
-        code: code,
+        code,
         problem_id: problemData?.id || 'unknown',
         problem_title: problemData?.title || 'Unknown Problem',
       };
+
       try {
-        const allSubmissions = JSON.parse(localStorage.getItem('submissions')) || {};
+        const allSubmissions = JSON.parse(storageGet('submissions', '{}')) || {};
         const problemId = problemData?.id || 'unknown';
         if (!allSubmissions[problemId]) {
           allSubmissions[problemId] = [];
         }
         allSubmissions[problemId].unshift(newSubmission);
-        localStorage.setItem('submissions', JSON.stringify(allSubmissions));
-      } catch (error) {
-        // Ignore localStorage errors
+        storageSet('submissions', JSON.stringify(allSubmissions));
+      } catch {
+        // Ignore localStorage issues while keeping submit flow usable.
       }
+
       if (result.error) {
         throw new Error(result.error);
       }
+
       setResponse(result.markdown_report);
       setStatusData(result.status);
       setActiveTab('results');
-    } catch (error) {
-      setError(error.message || 'Failed to submit solution. Please try again.');
-      setResponse(`### Error Submitting Solution\n\n${error.message || 'An unexpected error occurred. Please try again.'}`);
+    } catch (err) {
+      const message = err.message || 'Failed to submit solution. Please try again.';
+      setError(message);
+      setResponse(`### Error Submitting Solution\n\n${message}`);
       setActiveTab('results');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleEditorDidMount = (editor, monaco) => {
+  const handleEditorDidMount = (editor) => {
     editorRef.current = editor;
   };
 
   const handleEditorChange = (value) => {
-    setCode(value);
+    setCode(value || '');
   };
 
   const showCorrectCode = true;
@@ -243,8 +253,9 @@ export default function useGencodeLogic() {
   const runCode = async () => {
     setIsRunning(true);
     setError(null);
+
     try {
-      if (!code) {
+      if (!code?.trim()) {
         setIsConsoleOpen(true);
         setCompilationResult({
           result: 'Failure',
@@ -252,29 +263,27 @@ export default function useGencodeLogic() {
         });
         return;
       }
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${process.env.NEXT_PUBLIC_COMPILER_ENDPOINT}`, {
+
+      const data = await requestJson(getCompilerUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           lang: language.toLowerCase(),
-          code: code,
+          code,
           problem_id: problemData.id,
           time_complexity: problemData.time_complexity,
           space_complexity: problemData.space_complexity,
         }),
       });
-      if (!response.ok) {
-        throw new Error(`Compilation failed with status: ${response.status}`);
-      }
-      const data = await response.json();
+
       setCompilationResult(data);
       setIsConsoleOpen(true);
-    } catch (error) {
+    } catch (err) {
       setCompilationResult({
         result: 'Compilation Error',
-        message: error.message || 'Unknown compilation error',
+        message: err.message || 'Unknown compilation error',
         corrected_code: null,
       });
       setIsConsoleOpen(true);

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { storageGet, storageSet } from '../../utils/storage';
 
 export default function useSidebarResize(initialWidth = 400, minWidth = 300, maxWidthPercent = 0.45) {
   const [sidebarWidth, setSidebarWidth] = useState(initialWidth);
@@ -13,7 +14,7 @@ export default function useSidebarResize(initialWidth = 400, minWidth = 300, max
   const handleResizeMouseUp = useCallback(() => {
     if (isResizing) {
       setIsResizing(false);
-      localStorage.setItem('sidebarWidth', sidebarWidth.toString());
+      storageSet('sidebarWidth', sidebarWidth.toString());
     }
   }, [isResizing, sidebarWidth]);
 
@@ -29,7 +30,7 @@ export default function useSidebarResize(initialWidth = 400, minWidth = 300, max
   }, [isResizing, minWidth, maxWidthPercent]);
 
   useEffect(() => {
-    const savedWidth = localStorage.getItem('sidebarWidth');
+    const savedWidth = storageGet('sidebarWidth');
     if (savedWidth) {
       const parsedWidth = parseInt(savedWidth, 10);
       const minWidthPx = minWidth;

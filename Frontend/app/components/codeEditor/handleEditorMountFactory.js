@@ -1,3 +1,5 @@
+import { storageSet } from "../../utils/storage";
+
 // Handles Monaco editor mount logic and keyboard shortcuts
 export default function handleEditorMountFactory({
   editorRef,
@@ -20,7 +22,7 @@ export default function handleEditorMountFactory({
     editor.onDidChangeConfiguration(() => {
       const opts = editor.getRawOptions();
       if (opts.fontSize) {
-        localStorage.setItem("editor-font", opts.fontSize.toString());
+        storageSet("editor-font", opts.fontSize.toString());
         setCurrentFontSize(opts.fontSize);
       }
     });

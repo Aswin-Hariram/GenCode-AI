@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { storageRemove } from '../utils/storage';
 
 const loadingTexts = [
   "Initializing AI Model...",
@@ -19,12 +20,12 @@ export default function LoadingSpinner() {
 
   useEffect(() => {
     setIsMounted(true);
-    localStorage.removeItem("askedHelp");
-    localStorage.removeItem("studyWithAiMessages");
+    storageRemove("askedHelp");
+    storageRemove("studyWithAiMessages");
   }, []);
 
   useEffect(() => {
-    localStorage.removeItem("editor-lang");
+    storageRemove("editor-lang");
   }, []);
 
   useEffect(() => {

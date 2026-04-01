@@ -5,6 +5,7 @@ import SolutionLanguageSelector from "../../../components/problem/Solution/Solut
 import SolutionCodeBlock from "../../../components/problem/Solution/SolutionCodeBlock";
 import SolutionMeta from "../../../components/problem/Solution/SolutionMeta";
 import ErrorAlert from "../../../elements/Problem/Solution/ErrorAlert";
+import { getChangeLanguageUrl } from "../../../utils/api";
 
 const SolutionTab = ({ problemData, theme = 'light' }) => {
   const [isClient, setIsClient] = useState(false);
@@ -45,7 +46,7 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
     setError(null);
 
     try {
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/changeLanguage`;
+      const apiUrl = getChangeLanguageUrl();
       console.log('API URL:', apiUrl);
       
       const requestBody = {

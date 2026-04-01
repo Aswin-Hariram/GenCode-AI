@@ -1,25 +1,26 @@
 import re
-from config.config import llm
-from langchain.chains import ConversationChain
-from langchain.memory import ConversationSummaryMemory
 from typing import Dict, Any
+
+from config.config import get_llm
 
 # Singleton pattern for memory and conversation objects to avoid re-instantiation
 class _ConversationManager:
-    _memory = None
-    _conversation = None
+    _history: list[dict[str, str]] = []
+    _max_turns = 6
 
     @classmethod
-    def get_conversation(cls):
-        if cls._memory is None:
-            cls._memory = ConversationSummaryMemory(llm=llm, return_messages=True)
-        if cls._conversation is None:
-            cls._conversation = ConversationChain(
-                llm=llm,
-                memory=cls._memory,
-                verbose=False
-            )
-        return cls._conversation
+    def format_history(cls) -> str:
+        if not cls._history:
+            return "No previous conversation."
+
+        return "\n".join(
+            f"{entry['role'].title()}: {entry['content']}" for entry in cls._history[-cls._max_turns :]
+        )
+
+    @classmethod
+    def add_turn(cls, role: str, content: str) -> None:
+        cls._history.append({"role": role, "content": content})
+        cls._history = cls._history[-cls._max_turns :]
 
 _PROMPT_TEMPLATE = """
 You are a highly skilled AI coding assistant, similar to ChatGPT, dedicated to providing clear, concise, and actionable help for coding problems. Your responses should be tailored to the user's current context and learning needs.
@@ -37,6 +38,8 @@ You are a highly skilled AI coding assistant, similar to ChatGPT, dedicated to p
 ```{language}
 {user_code_progress}
 ```
+- **Recent Conversation:**
+{conversation_history}
 
 ## Instructions
 - **Always answer ONLY the user's question.** Stay strictly on-topic.
@@ -86,18 +89,20 @@ def ask_help_to_ai(
         problem_description=problem_description,
         problem_topic=problem_topic,
         initial_code=initial_code,
-        user_code_progress=user_code_progress
+        user_code_progress=user_code_progress,
+        conversation_history=_ConversationManager.format_history(),
     )
 
-    conversation = _ConversationManager.get_conversation()
-    raw_response = conversation.predict(input=prompt).strip()
+    raw_response = get_llm().invoke(prompt).content.strip()
+    _ConversationManager.add_turn("user", message)
+    _ConversationManager.add_turn("assistant", raw_response)
 
     # Extract markdown-formatted output efficiently
     match = re.search(r"\*\*Output\*\*:\s*(.+?)(?:\n\*\*Note\*\*|$)", raw_response, re.IGNORECASE | re.DOTALL)
     output = match.group(1).strip() if match else raw_response
 
     return {
-        "sender": "user",
+        "sender": "assistant",
         "output": output,
         "status": "success",
     }

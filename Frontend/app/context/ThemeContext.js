@@ -1,24 +1,34 @@
 'use client';
 
 import React, { createContext, useState, useMemo, useEffect, useContext, useCallback } from 'react';
+import { storageGet, storageSet } from '../utils/storage';
 
 const ThemeContext = createContext();
+const THEME_STORAGE_KEY = 'theme';
+
+function resolveInitialTheme() {
+    const savedTheme = storageGet(THEME_STORAGE_KEY);
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+        return savedTheme;
+    }
+
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    return 'dark';
+}
 
 export const ThemeProvider = ({ children }) => {
-    const [theme, setTheme] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const savedTheme = localStorage.getItem('theme');
-            return savedTheme || 'dark';
-        } else {
-            return 'dark';
-        }
-    });
+    const [theme, setTheme] = useState(resolveInitialTheme);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('theme', theme);
-            document.documentElement.className = theme;
-        }
+        if (typeof window === 'undefined') return;
+
+        storageSet(THEME_STORAGE_KEY, theme);
+        document.documentElement.classList.remove('light', 'dark');
+        document.documentElement.classList.add(theme);
+        document.documentElement.dataset.theme = theme;
     }, [theme]);
 
     const toggleTheme = useCallback(() => {

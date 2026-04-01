@@ -1,5 +1,6 @@
-from config.config import llm  # Assumes llm is a LangChain LLM instance like ChatOpenAI or Gemini
 import re
+
+from config.config import get_llm
 
 def LangChange(code, fromLang, toLang):
     """Convert the initial code from one language to another language"""
@@ -26,7 +27,7 @@ def LangChange(code, fromLang, toLang):
     
     """
 
-    response = llm.invoke(prompt).content
+    response = get_llm().invoke(prompt).content
 
    
     # Debug: Print the raw response for inspection

@@ -8,6 +8,7 @@ import useEditorFullscreen from "../../../hooks/codeEditor/useEditorFullscreen";
 import useEditorPreferences from "../../../hooks/codeEditor/useEditorPreferences";
 import handleEditorMountFactory from "../../../components/codeEditor/handleEditorMountFactory";
 import applyMonacoTheme from "../../../hooks/codeEditor/applyMonacoTheme";
+import { storageSet } from "../../../utils/storage";
 
 const CodeEditor = (props) => {
   const {
@@ -103,7 +104,7 @@ const CodeEditor = (props) => {
   // Save code to localStorage on change
   const handleCodeChange = (value) => {
     if (onCodeChange) onCodeChange(value);
-    localStorage.setItem('editor-code', value || '');
+    storageSet('editor-code', value || '');
   };
 
   // Ensure the toggle fullscreen function works in keyboard shortcuts

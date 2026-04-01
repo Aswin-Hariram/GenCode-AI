@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getQuestionUrl } from '../utils/api';
 
 export const useProblemData = () => {
   const [problemData, setProblemData] = useState({
@@ -21,7 +22,7 @@ export const useProblemData = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${process.env.NEXT_PUBLIC_GET_QUESTION_ENDPOINT}`, {
+      const response = await fetch(getQuestionUrl(), {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache',
