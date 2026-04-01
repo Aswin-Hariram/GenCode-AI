@@ -1,9 +1,6 @@
 import './serverLocalStorageShim';
 import './globals.css';
 import ClientLayout from './ClientLayout';
-import { Lexend } from 'next/font/google';
-
-const lexend = Lexend({ subsets: ['latin'], variable: '--font-lexend' });
 
 export const metadata = {
   title: "Gen Code",
@@ -12,8 +9,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={lexend.variable}>
-      <body className="antialiased" style={{ fontFamily: 'var(--font-lexend), sans-serif' }}>
+    <html lang="en">
+      <body className="antialiased" style={{ fontFamily: 'Lexend, Inter, system-ui, -apple-system, sans-serif' }}>
         <ClientLayout>
           {children}
         </ClientLayout>

@@ -4,7 +4,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-lexend), system-ui, -apple-system, sans-serif;
+  font-family: Lexend, Inter, system-ui, -apple-system, sans-serif;
 }
 /* Custom scrollbar */
 ::-webkit-scrollbar {
@@ -74,4 +74,3 @@ pre, code {
   cursor: row-resize;
   height: 6px;
 }
-
