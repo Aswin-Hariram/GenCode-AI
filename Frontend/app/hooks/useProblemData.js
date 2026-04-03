@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getQuestionUrl } from '../utils/api';
+import { getQuestionUrl, QUESTION_REQUEST_TIMEOUT_MS, requestJson } from '../utils/api';
 
 export const useProblemData = () => {
   const [problemData, setProblemData] = useState({
@@ -22,20 +22,10 @@ export const useProblemData = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(getQuestionUrl(), {
+      const data = await requestJson(getQuestionUrl(), {
         method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+        timeoutMs: QUESTION_REQUEST_TIMEOUT_MS,
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Fetched data:', data);
       
       setProblemData({
         title: data.title,

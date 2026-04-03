@@ -3,7 +3,13 @@ import { INITIAL_CODE } from '../utils/constants';
 import { useTheme } from '../context/ThemeContext';
 import { FiFileText, FiCode, FiBarChart2, FiZap } from 'react-icons/fi';
 import { storageGet, storageSet } from '../utils/storage';
-import { getCompilerUrl, getQuestionUrl, getSubmitUrl, requestJson } from '../utils/api';
+import {
+  getCompilerUrl,
+  getQuestionUrl,
+  getSubmitUrl,
+  QUESTION_REQUEST_TIMEOUT_MS,
+  requestJson,
+} from '../utils/api';
 
 const EDITOR_LANG_KEY = 'editor-lang';
 const EDITOR_CODE_KEY = 'editor-code';
@@ -84,10 +90,7 @@ export default function useGencodeLogic() {
     try {
       const data = await requestJson(getQuestionUrl(), {
         method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache',
-        },
+        timeoutMs: QUESTION_REQUEST_TIMEOUT_MS,
       });
 
       applyProblemData(data);
@@ -109,10 +112,7 @@ export default function useGencodeLogic() {
     try {
       const data = await requestJson(getQuestionUrl(topic), {
         method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache',
-        },
+        timeoutMs: QUESTION_REQUEST_TIMEOUT_MS,
       });
 
       applyProblemData(data, topic);
@@ -151,7 +151,8 @@ export default function useGencodeLogic() {
     };
     const handleShowError = (event) => {
       const { detail } = event;
-      setProblemError(detail.message);
+      const message = typeof detail === 'string' ? detail : detail?.message;
+      setProblemError(message || 'Failed to load question');
       setIsLoading(false);
     };
     const handleRegenerateQuestion = (event) => {

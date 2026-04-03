@@ -11,6 +11,11 @@ import SidebarTopicCard from '../../../components/sidebar/SidebarTopicCard';
 import SidebarFilterHeader from '../../../components/sidebar/SidebarFilterHeader';
 import useSidebarResize from '../../../hooks/sidebar/useSidebarResize';
 import SidebarResizeHandle from '../../../elements/sidebar/SidebarResizeHandle';
+import {
+  getQuestionUrl,
+  QUESTION_REQUEST_TIMEOUT_MS,
+  requestJson,
+} from '../../../utils/api';
 import { storageGet, storageSet } from '../../../utils/storage';
 
 const CombinedSidebar = () => {
@@ -421,13 +426,10 @@ const CombinedSidebar = () => {
       const loadingEvent = new CustomEvent('showLoading', { detail: true });
       window.dispatchEvent(loadingEvent);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/get_dsa_question?topic=${encodeURIComponent(topicName)}`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch question: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
+      const data = await requestJson(getQuestionUrl(topicName), {
+        method: 'GET',
+        timeoutMs: QUESTION_REQUEST_TIMEOUT_MS,
+      });
       
       const updateEvent = new CustomEvent('updateProblemData', { 
         detail: {
@@ -445,8 +447,10 @@ const CombinedSidebar = () => {
       
     } catch (error) {
       console.error('Error fetching question:', error);
-      const errorEvent = new CustomEvent('showError', { 
-        detail: `Failed to load question: ${error.message}`
+      const errorEvent = new CustomEvent('showError', {
+        detail: {
+          message: `Failed to load question: ${error.message}`,
+        },
       });
       window.dispatchEvent(errorEvent);
     } finally {
