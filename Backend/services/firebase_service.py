@@ -2,6 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import os
 import random
+import threading
 from datetime import timedelta
 
 
@@ -12,24 +13,35 @@ SERVICE_ACCOUNT_PATH = os.path.join(
 
 class FirebaseService:
     _instance = None
+    db = None
+    _init_lock = threading.Lock()
     
     @classmethod
     def initialize(cls):
-        if cls._instance:
+        if cls._instance and cls.db is not None:
             return
 
-        if not os.path.exists(SERVICE_ACCOUNT_PATH):
-            raise FileNotFoundError(
-                f"Firebase service account key not found at {SERVICE_ACCOUNT_PATH}"
-            )
+        with cls._init_lock:
+            if cls._instance and cls.db is not None:
+                return
 
-        if firebase_admin._apps:
-            cls._instance = firebase_admin.get_app()
-        else:
-            cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
-            cls._instance = firebase_admin.initialize_app(cred)
+            if not os.path.exists(SERVICE_ACCOUNT_PATH):
+                raise FileNotFoundError(
+                    f"Firebase service account key not found at {SERVICE_ACCOUNT_PATH}"
+                )
 
-        cls.db = firestore.client()
+            try:
+                cls._instance = firebase_admin.get_app()
+            except ValueError:
+                cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
+                try:
+                    cls._instance = firebase_admin.initialize_app(cred)
+                except ValueError:
+                    # Another request may have initialized Firebase while we were
+                    # preparing credentials. Reuse the existing default app.
+                    cls._instance = firebase_admin.get_app()
+
+            cls.db = firestore.client()
     
     @classmethod
     def get_db(cls):

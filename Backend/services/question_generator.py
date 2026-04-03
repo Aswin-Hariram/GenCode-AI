@@ -1,6 +1,5 @@
 import re
-
-from config.config import get_llm
+from config.config import llm
 
 def generate_dsa_question(topic: str) -> dict:
     prompt = f"""
@@ -102,7 +101,7 @@ def generate_dsa_question(topic: str) -> dict:
      
     [Note] Ensure that all sections are properly aligned and must add proper spacing between text and lines with '\n' with Markdown formatting.
     """
-    markdown = get_llm().invoke(prompt).content
+    markdown = llm.invoke(prompt).content
 
     # Extract difficulty
     difficulty_match = re.search(r'^Difficulty:\s*(.+)', markdown, re.MULTILINE)

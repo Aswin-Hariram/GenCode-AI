@@ -8,6 +8,7 @@ import {
   getQuestionUrl,
   getSubmitUrl,
   QUESTION_REQUEST_TIMEOUT_MS,
+  SUBMIT_REQUEST_TIMEOUT_MS,
   requestJson,
 } from '../utils/api';
 
@@ -192,6 +193,7 @@ export default function useGencodeLogic() {
         headers: {
           'Content-Type': 'application/json',
         },
+        timeoutMs: SUBMIT_REQUEST_TIMEOUT_MS,
         body: JSON.stringify({
           ...submissionData,
           code,

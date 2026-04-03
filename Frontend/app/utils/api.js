@@ -1,5 +1,6 @@
 const DEFAULT_API_BASE_URL = "http://localhost:8000";
 export const QUESTION_REQUEST_TIMEOUT_MS = 45000;
+export const SUBMIT_REQUEST_TIMEOUT_MS = 120000;
 
 const DEFAULT_ENDPOINTS = {
   getQuestion: "/get_dsa_question",
