@@ -312,11 +312,19 @@ const CombinedSidebar = () => {
   };
 
   const formatTopicName = (name) => {
-    return name
-      .replace(/_/g, ' ')
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+    if (!name) {
+      return '';
+    }
+
+    if (name.includes('_')) {
+      return name
+        .replace(/_/g, ' ')
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+
+    return name;
   };
 
   // Load more topics on demand (infinite scroll)
@@ -440,7 +448,8 @@ const CombinedSidebar = () => {
           difficulty: data.difficulty || 'Medium',
           time_complexity: data.time_complexity || 'O(n)',
           space_complexity: data.space_complexity || 'O(1)',
-          initial_code: data.initial_code || ''
+          initial_code: data.initial_code || '',
+          realtopic: data.realtopic || topicName,
         }
       });
       window.dispatchEvent(updateEvent);

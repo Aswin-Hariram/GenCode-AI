@@ -24,22 +24,24 @@ const ConsoleModal = ({
     corrected_code: null
   };
 
+  const normalizedResult = String(safeResult.result || '').toLowerCase();
+
   const getResultColor = () => {
     if (!compilationResult) return 'text-slate-300';
-    switch (compilationResult.result) {
-      case 'Success': return theme === 'dark' ? 'text-emerald-400' : 'text-emerald-500';
-      case 'Compilation Error': return theme === 'dark' ? 'text-red-400' : 'text-red-500';
-      case 'Runtime Error': return theme === 'dark' ? 'text-orange-400' : 'text-orange-500';
+    switch (normalizedResult) {
+      case 'success': return theme === 'dark' ? 'text-emerald-400' : 'text-emerald-500';
+      case 'compilation error': return theme === 'dark' ? 'text-red-400' : 'text-red-500';
+      case 'runtime error': return theme === 'dark' ? 'text-orange-400' : 'text-orange-500';
       default: return 'text-slate-300';
     }
   };
   
   const getResultBadgeColor = () => {
     if (!compilationResult) return theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700';
-    switch (compilationResult.result) {
-      case 'Success': return theme === 'dark' ? 'bg-emerald-900/30 text-emerald-300' : 'bg-emerald-100 text-emerald-800';
-      case 'Compilation Error': return theme === 'dark' ? 'bg-red-900/30 text-red-300' : 'bg-red-100 text-red-800';
-      case 'Runtime Error': return theme === 'dark' ? 'bg-orange-900/30 text-orange-300' : 'bg-orange-100 text-orange-800';
+    switch (normalizedResult) {
+      case 'success': return theme === 'dark' ? 'bg-emerald-900/30 text-emerald-300' : 'bg-emerald-100 text-emerald-800';
+      case 'compilation error': return theme === 'dark' ? 'bg-red-900/30 text-red-300' : 'bg-red-100 text-red-800';
+      case 'runtime error': return theme === 'dark' ? 'bg-orange-900/30 text-orange-300' : 'bg-orange-100 text-orange-800';
       default: return theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700';
     }
   };
@@ -64,7 +66,7 @@ const ConsoleModal = ({
               <div className="flex items-center space-x-3">
                 <h2 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Console Output</h2>
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getResultBadgeColor()}`}>
-                  {compilationResult.result}
+                  {safeResult.result}
                 </span>
               </div>
               

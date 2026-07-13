@@ -6,8 +6,10 @@ import { storageGet, storageSet } from '../utils/storage';
 import {
   getCompilerUrl,
   getQuestionUrl,
+  getRandomFaangQuestionUrl,
   getSubmitUrl,
   QUESTION_REQUEST_TIMEOUT_MS,
+  RANDOM_FAANG_REQUEST_TIMEOUT_MS,
   SUBMIT_REQUEST_TIMEOUT_MS,
   requestJson,
 } from '../utils/api';
@@ -16,10 +18,14 @@ const EDITOR_LANG_KEY = 'editor-lang';
 const EDITOR_CODE_KEY = 'editor-code';
 const DEFAULT_LANGUAGE = 'cpp';
 const DEFAULT_PROBLEM_DATA = {
+  id: '',
   title: '',
   difficulty: '',
   description: '',
   realtopic: '',
+  source: '',
+  company: '',
+  generated_question_id: '',
   testcases: [],
   solution: '',
   space_complexity: '',
@@ -27,18 +33,30 @@ const DEFAULT_PROBLEM_DATA = {
   initial_code: '',
 };
 
+function normalizeDifficulty(value) {
+  const normalized = String(value || 'Medium').trim().toLowerCase();
+
+  if (normalized === 'easy') return 'Easy';
+  if (normalized === 'hard') return 'Hard';
+  return 'Medium';
+}
+
 function normalizeProblemData(data, fallbackTitle = '') {
   return {
     ...DEFAULT_PROBLEM_DATA,
+    id: data?.id || data?.generated_question_id || data?.title || fallbackTitle,
     title: data?.title || fallbackTitle,
     description: data?.markdown || data?.description || '',
     solution: data?.solution || '',
     testcases: Array.isArray(data?.testcases) ? data.testcases : [],
-    difficulty: data?.difficulty || 'Medium',
+    difficulty: normalizeDifficulty(data?.difficulty),
     time_complexity: data?.time_complexity || 'O(n)',
     space_complexity: data?.space_complexity || 'O(1)',
     initial_code: data?.initial_code || INITIAL_CODE,
     realtopic: data?.realtopic || fallbackTitle,
+    source: data?.source || '',
+    company: data?.company || '',
+    generated_question_id: data?.generated_question_id || '',
   };
 }
 
@@ -63,6 +81,13 @@ export default function useGencodeLogic() {
   const [isLoading, setIsLoading] = useState(true);
   const [problemError, setProblemError] = useState(null);
 
+  const showNonBlockingProblemError = useCallback((message) => {
+    setError(message);
+    setStatusData('Generation Failed');
+    setResponse(`## Unable to Generate Question\n\n${message}\n\nPlease try again in a moment.`);
+    setActiveTab('results');
+  }, []);
+
   const resetProblemWorkspace = useCallback(() => {
     setActiveTab('description');
     setResponse(null);
@@ -83,6 +108,7 @@ export default function useGencodeLogic() {
   }, []);
 
   const generateNewProblem = useCallback(async () => {
+    const hasExistingProblem = Boolean(problemData?.title);
     resetProblemWorkspace();
     setIsLoading(true);
     setLanguage(DEFAULT_LANGUAGE);
@@ -96,15 +122,21 @@ export default function useGencodeLogic() {
 
       applyProblemData(data);
     } catch (err) {
-      setProblemError(err.message || 'An unexpected error occurred');
-      setCode(INITIAL_CODE);
-      storageSet(EDITOR_CODE_KEY, INITIAL_CODE);
+      const message = err.message || 'An unexpected error occurred';
+      if (hasExistingProblem) {
+        showNonBlockingProblemError(message);
+      } else {
+        setProblemError(message);
+        setCode(INITIAL_CODE);
+        storageSet(EDITOR_CODE_KEY, INITIAL_CODE);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [applyProblemData, resetProblemWorkspace]);
+  }, [applyProblemData, problemData?.title, resetProblemWorkspace, showNonBlockingProblemError]);
 
   const fetchQuestionForTopic = useCallback(async (topic) => {
+    const hasExistingProblem = Boolean(problemData?.title);
     resetProblemWorkspace();
     setIsLoading(true);
     setLanguage(DEFAULT_LANGUAGE);
@@ -118,13 +150,49 @@ export default function useGencodeLogic() {
 
       applyProblemData(data, topic);
     } catch (err) {
-      setProblemError(err.message || 'Failed to load question');
-      setCode(INITIAL_CODE);
-      storageSet(EDITOR_CODE_KEY, INITIAL_CODE);
+      const message = err.message || 'Failed to load question';
+      if (hasExistingProblem) {
+        showNonBlockingProblemError(message);
+      } else {
+        setProblemError(message);
+        setCode(INITIAL_CODE);
+        storageSet(EDITOR_CODE_KEY, INITIAL_CODE);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [applyProblemData, resetProblemWorkspace]);
+  }, [applyProblemData, problemData?.title, resetProblemWorkspace, showNonBlockingProblemError]);
+
+  const generateRandomFaangProblem = useCallback(async () => {
+    const hasExistingProblem = Boolean(problemData?.title);
+    setIsLoading(true);
+    setLanguage(DEFAULT_LANGUAGE);
+    storageSet(EDITOR_LANG_KEY, DEFAULT_LANGUAGE);
+
+    try {
+      resetProblemWorkspace();
+      const data = await requestJson(getRandomFaangQuestionUrl(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeoutMs: RANDOM_FAANG_REQUEST_TIMEOUT_MS,
+      });
+
+      applyProblemData(data);
+    } catch (err) {
+      const message = err.message || 'Failed to generate a random FAANG question';
+      if (hasExistingProblem) {
+        showNonBlockingProblemError(message);
+      } else {
+        setProblemError(message);
+        setCode(INITIAL_CODE);
+        storageSet(EDITOR_CODE_KEY, INITIAL_CODE);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [applyProblemData, problemData?.title, resetProblemWorkspace, showNonBlockingProblemError]);
 
   const effectRan = useRef(false);
   useEffect(() => {
@@ -258,7 +326,9 @@ export default function useGencodeLogic() {
     setError(null);
 
     try {
-      if (!code?.trim()) {
+      const currentCode = editorRef.current?.getValue() ?? code ?? '';
+
+      if (!currentCode.trim()) {
         setIsConsoleOpen(true);
         setCompilationResult({
           result: 'Failure',
@@ -267,6 +337,9 @@ export default function useGencodeLogic() {
         return;
       }
 
+      setCode(currentCode);
+      storageSet(EDITOR_CODE_KEY, currentCode);
+
       const data = await requestJson(getCompilerUrl(), {
         method: 'POST',
         headers: {
@@ -274,7 +347,7 @@ export default function useGencodeLogic() {
         },
         body: JSON.stringify({
           lang: language.toLowerCase(),
-          code,
+          code: currentCode,
           problem_id: problemData.id,
           time_complexity: problemData.time_complexity,
           space_complexity: problemData.space_complexity,
@@ -331,6 +404,7 @@ export default function useGencodeLogic() {
     problemError,
     setProblemError,
     generateNewProblem,
+    generateRandomFaangProblem,
     fetchQuestionForTopic,
     tabs,
     toggleConsole,

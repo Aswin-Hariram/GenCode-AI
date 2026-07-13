@@ -1,8 +1,9 @@
 "use client";
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import EditorLoadingOverlay from "../../../elements/codeEditor/EditorLoadingOverlay";
 import EditorToolbar from "../../../components/codeEditor/EditorToolbar";
+import EditorStatusBar from "../../../components/codeEditor/EditorStatusBar";
 import useCodeEditorLogic from "../../../hooks/codeEditor/useCodeEditorLogic";
 import useEditorFullscreen from "../../../hooks/codeEditor/useEditorFullscreen";
 import useEditorPreferences from "../../../hooks/codeEditor/useEditorPreferences";
@@ -16,22 +17,31 @@ const CodeEditor = (props) => {
     settingsRef,
     settingsButtonRef,
     currentLanguage,
+    error,
     autoSuggestEnabled,
+    isWordWrapEnabled,
+    isMinimapEnabled,
     editorTheme,
     isSettingsOpen,
     setIsSettingsOpen,
     currentFontSize,
     isLangChanging,
     toggleAutoSuggest,
+    toggleWordWrap,
+    toggleMinimap,
     handleThemeToggle,
     changeFontSize,
     setCurrentFontSize,
     setEditorTheme,
     setAutoSuggestEnabled,
     setLanguage,
-    handleLangChange // <-- add this from useCodeEditorLogic
+    handleLangChange,
+    handleFormatCode,
   } = useCodeEditorLogic(props);
   const { code, isFullscreen, onCodeChange, onRunCode, isRunning, isSubmitting, initialFontSize } = props;
+  const safeCode = typeof code === "string" ? code : "";
+  const lineCount = safeCode ? safeCode.split("\n").length : 1;
+  const characterCount = safeCode.length;
 
   // Fullscreen logic
   const handleToggleFullscreen = useEditorFullscreen(props.onToggleFullscreen);
@@ -126,13 +136,8 @@ const CodeEditor = (props) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleToggleFullscreen]);
   
-  // Determine text/bg color classes based on theme
-  const themeClasses = props.theme === "vs-dark" 
-    ? { bg: "bg-gray-700", border: "border-gray-600", text: "text-white", hover: "hover:bg-gray-700" }
-    : { bg: "bg-white", border: "border-gray-300", text: "text-gray-700", hover: "hover:bg-gray-200" };
-
   return (
-    <div className={`flex flex-col ${isFullscreen ? "fixed inset-0 z-50 bg-slate-900 p-4 overflow-hidden" : "h-full"}`}>
+    <div className={`flex flex-col overflow-hidden ${isFullscreen ? "fixed inset-0 z-50 bg-slate-950 p-4" : "h-full bg-slate-950"}`}>
       <EditorToolbar
         {...{
           isFullscreen,
@@ -144,25 +149,35 @@ const CodeEditor = (props) => {
           currentLanguage,
           handleLangChange,
           autoSuggestEnabled,
+          isWordWrapEnabled,
+          isMinimapEnabled,
           currentFontSize,
           editorTheme,
           toggleAutoSuggest,
+          toggleWordWrap,
+          toggleMinimap,
           changeFontSize,
           handleThemeToggle,
           handleResetCode,
           handleToggleFullscreen,
           onRunCode,
           isRunning,
+          handleFormatCode,
           handleSubmitCode,
           isSubmitting
         }}
       />
-      <div className="h-full overflow-hidden relative">
+      {error && (
+        <div className="border-b border-red-800 bg-red-900/70 px-4 py-2 text-sm text-red-200">
+          {error}
+        </div>
+      )}
+      <div className="relative h-full overflow-hidden border-x border-slate-800">
         {isLangChanging && <EditorLoadingOverlay />}
         <Editor
-          height={isFullscreen ? "calc(100vh - 60px)" : "100%"}
+          height={isFullscreen ? "calc(100vh - 132px)" : "100%"}
           language={currentLanguage}
-          value={code}
+          value={safeCode}
           theme={editorTheme}
           onChange={handleCodeChange}
           onMount={(editor, monaco) => {
@@ -176,16 +191,17 @@ const CodeEditor = (props) => {
             );
           }}
           options={{
-            fontFamily: 'Lexend, var(--font-sans), system-ui, -apple-system, sans-serif',
+            fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
             fontSize: typeof currentFontSize === 'number' && !isNaN(currentFontSize) ? currentFontSize : 14,
-            minimap: { enabled: true },
+            minimap: { enabled: isMinimapEnabled },
             scrollBeyondLastLine: false,
             automaticLayout: true,
             lineNumbers: "on",
             folding: true,
-            foldingStrategy: "auto", // advanced folding
+            foldingStrategy: "auto",
             tabSize: 2,
-            wordWrap: "on", // wrap at editor width only
+            insertSpaces: true,
+            wordWrap: isWordWrapEnabled ? "on" : "off",
             formatOnPaste: true,
             formatOnType: true,
             quickSuggestions: autoSuggestEnabled,
@@ -202,24 +218,47 @@ const CodeEditor = (props) => {
               enabled: true
             },
             fontLigatures: true,
-            padding: { top: 10 },
-            // --- Advanced Features ---
-            renderValidationDecorations: "on", // show error/warning markers
-            multiCursorModifier: "ctrlCmd", // multi-cursor with Ctrl/Cmd
+            guides: {
+              bracketPairs: true,
+              indentation: true,
+              highlightActiveIndentation: true,
+            },
+            stickyScroll: {
+              enabled: true,
+            },
+            padding: { top: 14, bottom: 14 },
+            renderValidationDecorations: "on",
+            multiCursorModifier: "ctrlCmd",
             find: { addExtraSpaceOnTop: true, seedSearchStringFromSelection: true },
-            findWidget: { visible: true },
             occurrencesHighlight: true,
             selectionHighlight: true,
             hover: { enabled: true },
             parameterHints: { enabled: true },
             autoClosingBrackets: "always",
             autoClosingQuotes: "always",
+            autoClosingDelete: "always",
+            autoClosingOvertype: "always",
+            autoIndent: "advanced",
+            matchBrackets: "always",
             snippetSuggestions: "inline",
             dragAndDrop: true,
-            copyWithSyntaxHighlighting: true
+            copyWithSyntaxHighlighting: true,
+            renderLineHighlight: "all",
+            scrollbar: {
+              verticalScrollbarSize: 10,
+              horizontalScrollbarSize: 10,
+            },
           }}
         />
       </div>
+      <EditorStatusBar
+        currentLanguage={currentLanguage}
+        lineCount={lineCount}
+        characterCount={characterCount}
+        currentFontSize={typeof currentFontSize === 'number' && !isNaN(currentFontSize) ? currentFontSize : 14}
+        isWordWrapEnabled={isWordWrapEnabled}
+        isMinimapEnabled={isMinimapEnabled}
+      />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import applyMonacoTheme from "./applyMonacoTheme";
 import { storageGet, storageSet } from "../../utils/storage";
-import { getChangeLanguageUrl } from "../../utils/api";
+import { getChangeLanguageUrl, requestJson } from "../../utils/api";
 
 export default function useCodeEditorLogic({
   language,
@@ -17,10 +17,11 @@ export default function useCodeEditorLogic({
 }) {
   const EDITOR_LANG_KEY = 'editor-lang';
   const DEFAULT_LANGUAGE = 'cpp';
+  const EDITOR_WRAP_KEY = 'editor-word-wrap';
+  const EDITOR_MINIMAP_KEY = 'editor-minimap';
   const [currentLanguage, setCurrentLanguage] = useState(language || DEFAULT_LANGUAGE);
   const [error, setError] = useState(null);
   const editorRef = useRef(null);
-  const prevLangRef = useRef(currentLanguage);
   const [autoSuggestEnabled, setAutoSuggestEnabled] = useState(true);
   const [editorTheme, setEditorTheme] = useState("vs-dark");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -30,11 +31,34 @@ export default function useCodeEditorLogic({
     typeof initialFontSize === 'number' && !isNaN(initialFontSize) ? initialFontSize : 16
   );
   const [isLangChanging, setIsLangChanging] = useState(false);
+  const [isWordWrapEnabled, setIsWordWrapEnabled] = useState(true);
+  const [isMinimapEnabled, setIsMinimapEnabled] = useState(true);
+
+  const applyEditorOptions = useCallback((editor, overrides = {}) => {
+    if (!editor) return;
+
+    editor.updateOptions({
+      fontSize: currentFontSize,
+      fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+      quickSuggestions: autoSuggestEnabled,
+      suggestOnTriggerCharacters: autoSuggestEnabled,
+      acceptSuggestionOnEnter: autoSuggestEnabled ? "on" : "off",
+      wordWrap: isWordWrapEnabled ? "on" : "off",
+      minimap: { enabled: isMinimapEnabled },
+      ...overrides,
+    });
+  }, [autoSuggestEnabled, currentFontSize, isMinimapEnabled, isWordWrapEnabled]);
 
   useEffect(() => {
     const savedLanguage = storageGet(EDITOR_LANG_KEY);
     if (savedLanguage) setCurrentLanguage(savedLanguage);
   }, []);
+
+  useEffect(() => {
+    if (language && language !== currentLanguage) {
+      setCurrentLanguage(language);
+    }
+  }, [language, currentLanguage]);
 
   useEffect(() => {
     if (!isSettingsOpen) return;
@@ -57,6 +81,8 @@ export default function useCodeEditorLogic({
     const storedFont = storageGet("editor-font");
     const storedTheme = storageGet("editor-theme");
     const storedAutoSuggest = storageGet("editor-auto-suggest");
+    const storedWordWrap = storageGet(EDITOR_WRAP_KEY);
+    const storedMinimap = storageGet(EDITOR_MINIMAP_KEY);
     if (storedLang) {
       setLanguage(storedLang);
     } else {
@@ -72,13 +98,19 @@ export default function useCodeEditorLogic({
     }
     if (storedTheme) setEditorTheme(storedTheme);
     if (storedAutoSuggest !== null) setAutoSuggestEnabled(storedAutoSuggest === "true");
-  }, [setLanguage, onToggleFullscreen]);
+    if (storedWordWrap !== null) setIsWordWrapEnabled(storedWordWrap === "true");
+    if (storedMinimap !== null) setIsMinimapEnabled(storedMinimap === "true");
+  }, [EDITOR_MINIMAP_KEY, EDITOR_WRAP_KEY, setLanguage]);
 
   useEffect(() => {
     if (editorRef.current && window.monaco) {
       applyMonacoTheme(window.monaco, editorTheme);
     }
   }, [editorTheme]);
+
+  useEffect(() => {
+    applyEditorOptions(editorRef.current);
+  }, [applyEditorOptions]);
 
   const handleToggleFullscreen = useCallback(() => {
     if (onToggleFullscreen) onToggleFullscreen();
@@ -106,48 +138,23 @@ export default function useCodeEditorLogic({
     setError(null);
     
     try {
-      // Check network connectivity first
-      if (!navigator.onLine) {
-        throw new Error('No internet connection. Please check your network and try again.');
+      const sourceCode = problemData?.initial_code ?? '';
+      if (!sourceCode.trim()) {
+        throw new Error('No starter code is available to convert for this problem yet.');
       }
-      
-      const apiUrl = getChangeLanguageUrl();
-      
-      // Add timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-      
-      const response = await fetch(apiUrl, {
+
+      const data = await requestJson(getChangeLanguageUrl(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          code: problemData?.initial_code || '',
+          code: sourceCode,
           fromLang: currentLanguage,
           toLang: newLang
         }),
-        signal: controller.signal
+        timeoutMs: 30000,
       });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const statusMessage = {
-          400: 'Invalid request format',
-          401: 'Authentication required',
-          403: 'Permission denied',
-          404: 'Language conversion service not found',
-          429: 'Too many requests, please try again later',
-          500: 'Server error occurred during language conversion',
-          503: 'Language conversion service unavailable'
-        }[response.status] || 'Failed to change language';
-        
-        throw new Error(errorData.message || statusMessage);
-      }
-      
-      const data = await response.json();
-      
-      if (!data || !data.code) {
+
+      if (!data || !data.code || String(data.result || '').toLowerCase() !== 'success') {
         throw new Error('Received invalid data from language conversion service');
       }
       
@@ -156,26 +163,21 @@ export default function useCodeEditorLogic({
         editorRef.current.setValue(data.code);
         if (onCodeChange) onCodeChange(data.code);
       }
+      storageSet('editor-code', data.code);
       
       // Update language settings
       setCurrentLanguage(newLang);
       storageSet(EDITOR_LANG_KEY, newLang);
       setLanguage?.(newLang);
-      
-      // Log successful language change
-      console.log(`Language changed successfully from ${currentLanguage} to ${newLang}`);
     } catch (err) {
       // Handle specific error types
       if (err.name === 'AbortError') {
         setError('Language change request timed out. Please try again.');
-      } else if (err.message.includes('fetch')) {
+      } else if (err.message?.includes('fetch')) {
         setError('Network error. Please check your connection and try again.');
       } else {
         setError(err.message || 'An error occurred while changing language');
       }
-      
-      // Log error for debugging
-      console.error('Language change error:', err);
     } finally {
       setIsLangChanging(false);
     }
@@ -184,7 +186,7 @@ export default function useCodeEditorLogic({
   const handleEditorMount = (editor, monaco) => {
     editorRef.current = editor;
     applyMonacoTheme(monaco, editorTheme);
-    editor.updateOptions({ fontSize: currentFontSize, fontFamily: 'Lexend, var(--font-sans), system-ui, -apple-system, sans-serif' });
+    applyEditorOptions(editor);
     editor.onDidChangeConfiguration(() => {
       const opts = editor.getRawOptions();
       if (opts.fontSize) {
@@ -223,15 +225,8 @@ export default function useCodeEditorLogic({
     const newValue = !autoSuggestEnabled;
     setAutoSuggestEnabled(newValue);
     storageSet("editor-auto-suggest", newValue.toString());
-    if (editorRef.current) {
-      editorRef.current.updateOptions({
-        quickSuggestions: newValue,
-        suggestOnTriggerCharacters: newValue,
-        acceptSuggestionOnEnter: newValue ? "on" : "off"
-      });
-      if (newValue) {
-        editorRef.current.trigger("manual", "editor.action.triggerSuggest", {});
-      }
+    if (editorRef.current && newValue) {
+      editorRef.current.trigger("manual", "editor.action.triggerSuggest", {});
     }
   };
 
@@ -245,8 +240,30 @@ export default function useCodeEditorLogic({
     if (!editorRef.current) return;
     const newSize = Math.max(10, Math.min(currentFontSize + delta, 30));
     setCurrentFontSize(newSize);
-    editorRef.current.updateOptions({ fontSize: newSize });
     storageSet("editor-font", newSize.toString());
+  };
+
+  const toggleWordWrap = () => {
+    const newValue = !isWordWrapEnabled;
+    setIsWordWrapEnabled(newValue);
+    storageSet(EDITOR_WRAP_KEY, newValue.toString());
+  };
+
+  const toggleMinimap = () => {
+    const newValue = !isMinimapEnabled;
+    setIsMinimapEnabled(newValue);
+    storageSet(EDITOR_MINIMAP_KEY, newValue.toString());
+  };
+
+  const handleFormatCode = async () => {
+    if (!editorRef.current) return;
+
+    try {
+      setError(null);
+      await editorRef.current.getAction('editor.action.formatDocument')?.run();
+    } catch {
+      setError('Unable to format the current document.');
+    }
   };
 
   useEffect(() => {
@@ -273,6 +290,8 @@ export default function useCodeEditorLogic({
     error,
     autoSuggestEnabled,
     setAutoSuggestEnabled,
+    isWordWrapEnabled,
+    isMinimapEnabled,
     editorTheme,
     setEditorTheme,
     isSettingsOpen,
@@ -285,7 +304,10 @@ export default function useCodeEditorLogic({
     handleResetCode,
     handleSubmitCode,
     toggleAutoSuggest,
+    toggleWordWrap,
+    toggleMinimap,
     handleThemeToggle,
-    changeFontSize
+    changeFontSize,
+    handleFormatCode
   };
 }

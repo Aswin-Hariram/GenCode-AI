@@ -1,6 +1,6 @@
 "use client";
 import PropTypes from 'prop-types';
-import { FiShare, FiRefreshCw, FiClock } from 'react-icons/fi';
+import { FiShare, FiRefreshCw, FiClock, FiZap } from 'react-icons/fi';
 import DifficultyBadge from '../../components/Header/DifficultyBadge';
 import Timer from '../../components/Header/Timer';
 import HeaderButton from '../../components/Header/HeaderButton';
@@ -8,11 +8,12 @@ import { useSidebar } from '../../context/SidebarContext';
 import { useState, useEffect } from 'react';
 import { generatePDF as generatePDFUtil } from '../../utils/pdfUtils';
 
-const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsData, generateNewProblem, isLoading, onSubmitCode, setActiveTab }) => {
+const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsData, generateNewProblem, generateRandomFaangProblem, isLoading, onSubmitCode, setActiveTab }) => {
   const { toggleSidebar } = useSidebar();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [time, setTime] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const isRandomFaang = problemData?.source === 'faang_random';
 
   useEffect(() => {
     let timer;
@@ -56,9 +57,31 @@ const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsDa
     } transition-colors duration-300`} style={{ fontFamily: 'Lexend, sans-serif' }}>
       {/* Left Section */}
       <div className="flex-1 flex items-center space-x-4">
-        <h1 className={`font-bold text-xl ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} tracking-tight`}>
-          {problemData?.title} 
-        </h1>
+        <div className="min-w-0">
+          <h1 className={`font-bold text-xl ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} tracking-tight truncate`}>
+            {problemData?.title}
+          </h1>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+            {isRandomFaang && (
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 font-semibold tracking-[0.12em] uppercase ${
+                theme === 'dark'
+                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+                  : 'border-amber-300 bg-amber-50 text-amber-800'
+              }`}>
+                {problemData?.company || 'FAANG'} Interview
+              </span>
+            )}
+            {problemData?.source && (
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 font-medium ${
+                theme === 'dark'
+                  ? 'border-slate-600 bg-slate-700/60 text-slate-200'
+                  : 'border-slate-300 bg-white text-slate-600'
+              }`}>
+                {isRandomFaang ? 'Stored in Firebase' : `Topic: ${problemData?.realtopic || 'Practice'}`}
+              </span>
+            )}
+          </div>
+        </div>
         <DifficultyBadge difficulty={problemData?.difficulty} theme={theme} />
       </div>
 
@@ -88,6 +111,28 @@ const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsDa
             theme === 'dark' 
               ? 'bg-gradient-to-r from-green-600/20 to-green-400/20' 
               : 'bg-gradient-to-r from-green-50 to-green-100/50'
+          }`}></span>
+        </HeaderButton>
+        <HeaderButton
+          onClick={generateRandomFaangProblem}
+          disabled={isLoading}
+          className={`group relative inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out overflow-hidden ${
+            theme === 'dark'
+              ? 'bg-slate-700/80 hover:bg-slate-600/90 text-slate-100 hover:text-white shadow-lg hover:shadow-slate-900/30'
+              : 'bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 shadow-md hover:shadow-lg hover:shadow-slate-200/50 border border-slate-200 hover:border-slate-300'
+          } ${isLoading ? 'cursor-not-allowed opacity-50' : ''}`}
+          title="Generate a new random FAANG-level question"
+        >
+          <span className="relative z-10 flex items-center">
+            <FiZap className={`mr-2 w-4 h-4 transition-transform duration-200 group-hover:scale-110 ${
+              theme === 'dark' ? 'text-amber-300' : 'text-amber-500'
+            }`} />
+            <span>Random FAANG</span>
+          </span>
+          <span className={`absolute inset-0 w-0 transition-all duration-300 ease-out group-hover:w-full ${
+            theme === 'dark' 
+              ? 'bg-gradient-to-r from-amber-600/20 to-orange-400/20' 
+              : 'bg-gradient-to-r from-amber-50 to-orange-100/50'
           }`}></span>
         </HeaderButton>
         <HeaderButton
@@ -136,17 +181,20 @@ const ProblemHeader = ({ problemData, theme, editorCode, solutionCode, resultsDa
 ProblemHeader.propTypes = {
   problemData: PropTypes.shape({
     title: PropTypes.string,
-    difficulty: PropTypes.oneOf(['Easy', 'Medium', 'Hard', '']),
+    difficulty: PropTypes.string,
     description: PropTypes.string,
     examples: PropTypes.array,
     solution: PropTypes.string,
-    realtopic: PropTypes.string
+    realtopic: PropTypes.string,
+    source: PropTypes.string,
+    company: PropTypes.string,
   }),
   theme: PropTypes.oneOf(['light', 'dark']),
   editorCode: PropTypes.string,
   solutionCode: PropTypes.string,
   resultsData: PropTypes.string,
   generateNewProblem: PropTypes.func,
+  generateRandomFaangProblem: PropTypes.func,
   isLoading: PropTypes.bool,
   onSubmitCode: PropTypes.func,
   setActiveTab: PropTypes.func
@@ -159,6 +207,7 @@ ProblemHeader.defaultProps = {
   solutionCode: '',
   resultsData: '',
   generateNewProblem: () => {},
+  generateRandomFaangProblem: () => {},
   isLoading: false,
   onSubmitCode: null,
   setActiveTab: null

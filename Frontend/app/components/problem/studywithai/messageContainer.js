@@ -4,9 +4,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus, vs } from "react-syntax-highlighter/dist/esm/styles/prism";
-
 import TypingIndicator from './TypingIndicator';
 import { getMarkdownComponents } from "../markdown/MarkdownComponents.js";
 import { getUserMessageStyle } from "../markdown/userMessage.js";
@@ -110,8 +107,8 @@ function MessageContainer({ messages, isTyping, theme, messagesEndRef, isFullScr
                   ? 'bg-blue-600 text-white shadow-blue-900/20'
                   : 'bg-blue-500 text-white shadow-blue-500/20'
                 : theme === 'dark'
-                  ? 'bg-slate-800 text-slate-100 border border-slate-700/50 shadow-slate-900/30'
-                  : 'bg-white text-slate-800 border border-slate-300 shadow-slate-300/40'
+                  ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.92))] text-slate-100 border border-slate-700/60 shadow-slate-950/30'
+                  : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.94))] text-slate-800 border border-slate-200 shadow-slate-300/30'
             } ${msg.sender === 'user' ? 'rounded-br-md' : 'rounded-bl-md'}`}>
               
               <ReactMarkdown

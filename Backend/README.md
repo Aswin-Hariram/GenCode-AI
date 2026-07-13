@@ -12,7 +12,7 @@ This is the backend service for the DSA Bot application, providing APIs for code
 
 ## Prerequisites
 
-- Python 3.9+
+- Python 3.11
 - Firebase project (for Firestore)
 - Google Cloud account (for Google Generative AI)
 
@@ -26,7 +26,7 @@ This is the backend service for the DSA Bot application, providing APIs for code
 
 2. **Create and activate a virtual environment**
    ```bash
-   python -m venv venv
+   python3.11 -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
@@ -50,7 +50,7 @@ This is the backend service for the DSA Bot application, providing APIs for code
 ## Running the Server
 
 ```bash
-python app.py
+python3.11 app.py
 ```
 
 The server will start on `http://localhost:8000` by default.

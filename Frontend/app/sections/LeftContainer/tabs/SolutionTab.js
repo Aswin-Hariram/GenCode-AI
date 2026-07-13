@@ -5,7 +5,7 @@ import SolutionLanguageSelector from "../../../components/problem/Solution/Solut
 import SolutionCodeBlock from "../../../components/problem/Solution/SolutionCodeBlock";
 import SolutionMeta from "../../../components/problem/Solution/SolutionMeta";
 import ErrorAlert from "../../../elements/Problem/Solution/ErrorAlert";
-import { getChangeLanguageUrl } from "../../../utils/api";
+import { getChangeLanguageUrl, requestJson } from "../../../utils/api";
 
 const SolutionTab = ({ problemData, theme = 'light' }) => {
   const [isClient, setIsClient] = useState(false);
@@ -20,6 +20,13 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
     problemData?.solution || '// Solution code will be displayed here'
   );
   const markdownComponents = getMarkdownComponents(theme);
+
+  useEffect(() => {
+    setSelectedLanguage('cpp');
+    setConvertedCode(problemData?.solution || '// Solution code will be displayed here');
+    setError(null);
+    setCopied(false);
+  }, [problemData?.solution, problemData?.title]);
 
   const languageOptions = [
     { value: 'cpp', label: 'C++' },
@@ -41,59 +48,32 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
       return;
     }
 
-    console.log('Initiating language conversion from', selectedLanguage, 'to', newLanguage);
     setIsConverting(true);
     setError(null);
 
     try {
-      const apiUrl = getChangeLanguageUrl();
-      console.log('API URL:', apiUrl);
-      
-      const requestBody = {
-        fromLang: selectedLanguage,
-        toLang: newLanguage,
-        code: problemData.solution,
-      };
-      
-      console.log('Request body:', JSON.stringify(requestBody, null, 2));
-
-      const response = await fetch(apiUrl, {
+      const data = await requestJson(getChangeLanguageUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          fromLang: selectedLanguage,
+          toLang: newLanguage,
+          code: convertedCode,
+        }),
+        timeoutMs: 30000,
       });
 
-      const responseText = await response.text();
-      console.log('Raw API response:', responseText);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-        throw new Error(`Invalid response format: ${responseText.substring(0, 200)}`);
-      }
-      
-      console.log('Parsed response data:', data);
-      
-      if (data && data.result === 'Success' && data.code) {
-        console.log('Language conversion successful');
+      if (data && String(data.result || '').toLowerCase() === 'success' && data.code) {
         setConvertedCode(data.code);
         setSelectedLanguage(newLanguage);
       } else {
         const errorMessage = data?.message || 'No error message provided by server';
-        console.error('Conversion failed with message:', errorMessage);
-        throw new Error(`Conversion failed: ${errorMessage}`);
+        throw new Error(errorMessage);
       }
     } catch (err) {
       const errorMsg = `Failed to convert code: ${err.message}`;
-      console.error('Language conversion error:', err);
       setError(errorMsg);
     } finally {
       setIsConverting(false);
@@ -136,6 +116,11 @@ const SolutionTab = ({ problemData, theme = 'light' }) => {
           <div className="mt-6 space-y-4">
             <SolutionMeta
               markdown={problemData.time_complexity}
+              markdownComponents={markdownComponents}
+              theme={theme}
+            />
+            <SolutionMeta
+              markdown={problemData.space_complexity}
               markdownComponents={markdownComponents}
               theme={theme}
             />

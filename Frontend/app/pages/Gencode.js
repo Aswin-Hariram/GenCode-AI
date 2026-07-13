@@ -48,6 +48,7 @@ const GenCode = () => {
     problemError,
     setProblemError,
     generateNewProblem,
+    generateRandomFaangProblem,
     fetchQuestionForTopic,
     tabs,
     toggleConsole,
@@ -65,7 +66,7 @@ const GenCode = () => {
   }
 
   if (problemError) {
-    return <ErrorDisplay error={problemError} />;
+    return <ErrorDisplay error={problemError} onRetry={generateNewProblem} />;
   }
 
 
@@ -79,6 +80,7 @@ const GenCode = () => {
         solutionCode={problemData?.solution} 
         resultsData={response} 
         generateNewProblem={generateNewProblem}
+        generateRandomFaangProblem={generateRandomFaangProblem}
         isLoading={isLoading}
         onSubmitCode={() => handleSubmitCode({
           description: problemData?.description,

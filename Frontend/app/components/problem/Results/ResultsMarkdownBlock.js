@@ -8,7 +8,11 @@ import { getMarkdownComponents } from "../markdown/MarkdownComponents";
 const ResultsMarkdownBlock = ({ response, theme }) => {
   const markdownComponents = getMarkdownComponents(theme);
   return (
-    <div className={`prose ${theme === 'dark' ? 'prose-invert' : 'prose-lg'} max-w-none select-text prose-headings:font-semibold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-base prose-p:leading-7 prose-a:no-underline hover:prose-a:underline prose-strong:font-bold prose-pre:p-0 prose-pre:bg-transparent prose-pre:rounded-lg prose-img:rounded-lg markdown-body`}>
+    <div className={`max-w-none select-text markdown-body rounded-[24px] border px-5 py-5 ${
+      theme === 'dark'
+        ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.92),rgba(2,6,23,0.88))] border-slate-700/70'
+        : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.94))] border-slate-200/90'
+    }`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, rehypeSanitize]}

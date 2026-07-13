@@ -16,11 +16,14 @@ from flask import Flask, jsonify, request, render_template, redirect, url_for, f
 from flask_cors import CORS
 
 from services.topic_manager import get_random_topic, get_recent_topics, add_topic as add_topic_manager
-from services.question_generator import generate_dsa_question
+from services.question_generator import generate_dsa_question, generate_random_faang_question
 from services.codeCompiler import compile_code
 from services.submitCode import submit_code
 from services.firebase_service import FirebaseService
 from services.askHelpToAI import ask_help_to_ai
+from config.config import get_gemini_readiness, get_llm_readiness, get_openrouter_readiness
+from services.language_utils import normalize_language
+from services.github_service import GitHubService
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -162,7 +165,7 @@ def compile():
         }), 400
 
     try:
-        lang = data.get('lang')
+        lang = normalize_language(data.get('lang') or data.get('language'))
         code = data.get('code')
 
         if not lang or code is None:
@@ -199,8 +202,8 @@ def changeLanguage():
         }), 400
 
     try:
-        fromLang = data.get('fromLang')
-        toLang = data.get('toLang')
+        fromLang = normalize_language(data.get('fromLang'))
+        toLang = normalize_language(data.get('toLang'))
         code = data.get('code')
 
         if not fromLang or not toLang or code is None:
@@ -231,12 +234,15 @@ def get_dsa_question():
         FirebaseService.initialize()
 
         # Get topic from query parameter
-        topic_name = request.args.get('topic')
+        topic_name = request.args.get('topic', '').strip()
 
         if topic_name:
-            # If a topic is provided, track its usage
-            FirebaseService.track_topic_usage(topic_name)
-            topic = topic_name
+            resolved_topic = FirebaseService.find_topic(topic_name)
+            if not resolved_topic:
+                return jsonify({'error': f"Topic '{topic_name}' was not found."}), 404
+
+            topic = resolved_topic['name']
+            FirebaseService.track_topic_usage(topic)
         else:
             # If no topic is provided, get a random one, excluding recent topics
             topic_details = FirebaseService.get_random_topic()
@@ -281,6 +287,34 @@ def get_dsa_question():
         return jsonify({
             'error': f'Failed to generate question: {str(e)}',
             'details': str(e)  # Include more details for debugging
+        }), 500
+
+
+@app.route('/generate_random_faang_question', methods=['POST'])
+@limiter.limit("10 per hour")
+def generate_random_faang_question_route():
+    started_at = time.perf_counter()
+    try:
+        FirebaseService.initialize()
+        existing_topics = [topic.get('name', '') for topic in FirebaseService.get_all_topics()]
+        result = generate_random_faang_question(existing_topics=existing_topics)
+        generated_question_id = FirebaseService.save_generated_question(result)
+        result['generated_question_id'] = generated_question_id
+
+        elapsed = time.perf_counter() - started_at
+        logger.info(
+            "Generated random FAANG question '%s' for %s in %.2fs",
+            result.get('title', 'Untitled'),
+            result.get('company', 'FAANG'),
+            elapsed,
+        )
+        return jsonify(result)
+    except Exception as e:
+        elapsed = time.perf_counter() - started_at
+        logger.error("Error generating random FAANG question after %.2fs: %s", elapsed, traceback.format_exc())
+        return jsonify({
+            'error': f'Failed to generate random FAANG question: {str(e)}',
+            'details': str(e),
         }), 500
 
 @app.route('/manage_topics')
@@ -341,6 +375,61 @@ def add_topic():
                             message=f"Error adding topic: {str(e)}", 
                             success=False)
 
+@app.route('/add_topics_bulk', methods=['POST'])
+def add_topics_bulk():
+    """Add multiple topics to Firestore (JSON API endpoint)."""
+    try:
+        from services.firebase_service import FirebaseService
+        FirebaseService.initialize()
+        
+        data = request.get_json()
+        if not data or 'topics' not in data:
+            return jsonify({'error': 'Topics array not provided', 'success': False}), 400
+        
+        topics_list = data.get('topics', [])
+        category = data.get('category', 'Uncategorized').strip()
+        difficulty = data.get('difficulty', 'medium').strip()
+        
+        if not isinstance(topics_list, list) or not topics_list:
+            return jsonify({'error': 'Topics must be a non-empty array', 'success': False}), 400
+        
+        added_count = 0
+        failed_topics = []
+        
+        for topic_name in topics_list:
+            topic_name = topic_name.strip()
+            if not topic_name:
+                continue
+            
+            topic_data = {
+                'name': topic_name,
+                'category': category,
+                'difficulty': difficulty
+            }
+            
+            try:
+                if FirebaseService.add_topic(topic_data):
+                    added_count += 1
+                    logger.info(f"Topic '{topic_name}' added successfully")
+                else:
+                    failed_topics.append(topic_name)
+                    logger.warning(f"Topic '{topic_name}' already exists or failed to add")
+            except Exception as e:
+                failed_topics.append(topic_name)
+                logger.warning(f"Error adding topic '{topic_name}': {str(e)}")
+        
+        return jsonify({
+            'success': True,
+            'message': f"Added {added_count} topics",
+            'added': added_count,
+            'failed': len(failed_topics),
+            'failed_topics': failed_topics
+        }), 200
+            
+    except Exception as e:
+        logger.error(f"Error in add_topics_bulk: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
 @app.route('/edit_topic', methods=['POST'])
 def edit_topic():
     """Edit an existing topic in Firestore."""
@@ -379,6 +468,54 @@ def edit_topic():
                             message=f"Error editing topic: {str(e)}", 
                             success=False)
 
+@app.route('/update_topic', methods=['POST'])
+def update_topic():
+    """Update an existing topic in Firestore (JSON API endpoint)."""
+    try:
+        from services.firebase_service import FirebaseService
+        FirebaseService.initialize()
+        
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({'error': 'Topic data not provided', 'success': False}), 400
+        
+        old_name = data.get('old_name', data.get('name', '')).strip()
+        new_name = data.get('name', '').strip()
+        category = data.get('category', 'Uncategorized').strip()
+        difficulty = data.get('difficulty', 'medium').strip()
+        
+        if not new_name:
+            return jsonify({'error': 'Topic name is required', 'success': False}), 400
+        
+        topic_data = {
+            'name': new_name,
+            'category': category,
+            'difficulty': difficulty
+        }
+        
+        # If name changed, delete old and add new
+        if old_name and old_name != new_name:
+            if not FirebaseService.remove_topic(old_name):
+                return jsonify({'error': f"Could not update topic '{old_name}'", 'success': False}), 404
+            if not FirebaseService.add_topic(topic_data):
+                return jsonify({'error': 'Could not add updated topic', 'success': False}), 500
+        else:
+            # Just update the existing topic
+            success, message = FirebaseService.edit_topic(old_name or new_name, topic_data)
+            if not success:
+                return jsonify({'error': message, 'success': False}), 400
+        
+        logger.info(f"Topic updated: {new_name}")
+        return jsonify({
+            'message': f"Topic updated successfully",
+            'success': True,
+            'updated_topic': new_name
+        }), 200
+            
+    except Exception as e:
+        logger.error(f"Error in update_topic: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
 @app.route('/remove_topic', methods=['POST'])
 def remove_topic():
     """Remove a topic from Firestore."""
@@ -412,6 +549,84 @@ def remove_topic():
                             message=f"Error removing topic: {str(e)}", 
                             success=False)
 
+@app.route('/load_topics_from_github', methods=['POST'])
+def load_topics_from_github_route():
+    """Load topics from a GitHub repository."""
+    try:
+        data = request.get_json()
+        if not data or 'repo_url' not in data:
+            return jsonify({'error': 'repo_url not provided'}), 400
+
+        repo_url = data['repo_url']
+        added_count, existed_count = GitHubService.load_topics_from_github(repo_url)
+
+        return jsonify({
+            'message': f'Successfully loaded topics from {repo_url}',
+            'added': added_count,
+            'existed': existed_count
+        })
+    except Exception as e:
+        logger.error(f"Error in load_topics_from_github_route: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/find_topic_gaps', methods=['POST'])
+def find_topic_gaps_route():
+    """Finds topics that are in a GitHub repository but not in Firebase."""
+    try:
+        data = request.get_json()
+        if not data or 'repo_url' not in data:
+            return jsonify({'error': 'repo_url not provided'}), 400
+
+        repo_url = data['repo_url']
+        repo_topics = GitHubService.get_topics_from_repo(repo_url)
+        
+        FirebaseService.initialize()
+        firebase_topics = [topic['name'] for topic in FirebaseService.get_all_topics()]
+        
+        missing_topics = [topic for topic in repo_topics if topic not in firebase_topics]
+
+        return jsonify({
+            'message': f'Found {len(missing_topics)} missing topics.',
+            'missing_topics': missing_topics
+        })
+    except Exception as e:
+        logger.error(f"Error in find_topic_gaps_route: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/delete_topic', methods=['POST'])
+def delete_topic():
+    """Delete a topic from Firebase (JSON API endpoint)."""
+    try:
+        from services.firebase_service import FirebaseService
+        FirebaseService.initialize()
+        
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({'error': 'Topic name not provided', 'success': False}), 400
+        
+        topic_name = data.get('name', '').strip()
+        
+        if not topic_name:
+            return jsonify({'error': 'Topic name cannot be empty', 'success': False}), 400
+        
+        # Delete from Firebase
+        if FirebaseService.remove_topic(topic_name):
+            logger.info(f"Topic '{topic_name}' deleted successfully from Firebase")
+            return jsonify({
+                'message': f"Topic '{topic_name}' deleted successfully",
+                'success': True,
+                'deleted_topic': topic_name
+            }), 200
+        else:
+            return jsonify({
+                'error': f"Topic '{topic_name}' not found",
+                'success': False
+            }), 404
+            
+    except Exception as e:
+        logger.error(f"Error in delete_topic: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
 # Error handlers
 @app.errorhandler(404)
 def page_not_found(e):
@@ -426,7 +641,33 @@ def server_error(e):
 # Health check endpoint
 @app.route('/health')
 def health_check():
-    return jsonify({'status': 'healthy'}), 200
+    firebase_ready, firebase_message = FirebaseService.get_firebase_readiness()
+    llm_ready, llm_message = get_llm_readiness()
+    gemini_ready, gemini_message = get_gemini_readiness()
+    openrouter_ready, openrouter_message = get_openrouter_readiness()
+    is_healthy = firebase_ready and llm_ready
+
+    return jsonify({
+        'status': 'healthy' if is_healthy else 'degraded',
+        'services': {
+            'firebase': {
+                'ready': firebase_ready,
+                'message': firebase_message,
+            },
+            'gemini': {
+                'ready': gemini_ready,
+                'message': gemini_message,
+            },
+            'openrouter': {
+                'ready': openrouter_ready,
+                'message': openrouter_message,
+            },
+            'llm': {
+                'ready': llm_ready,
+                'message': llm_message,
+            },
+        },
+    }), 200 if is_healthy else 503
 
 # Root path handler
 @app.route('/recent')
@@ -480,7 +721,8 @@ def api_recent_topics():
             try:
                 topics.append({
                     'id': str(i),
-                    'name': str(topic.get('name', '')).replace(' ', '_').lower(),
+                    'name': str(topic.get('name', '')).strip(),
+                    'slug': FirebaseService.topic_to_slug(topic.get('name', '')),
                     'category': str(topic.get('category', 'Uncategorized')),
                     'difficulty': str(topic.get('difficulty', 'medium')),
                     'last_used': str(topic.get('last_used', 'Recently'))
@@ -570,10 +812,10 @@ def api_ask_help_to_ai():
     try:
         message = data.get('message', '')
         language = data.get('language', 'cpp')
-        problem_description = data.get('problem Description', '')
-        problem_topic = data.get('problem Topic', '')
-        initial_code = data.get('initial code', '')
-        user_code_progress = data.get('user_code_progress', '')
+        problem_description = data.get('problemDescription') or data.get('problem Description', '')
+        problem_topic = data.get('problemTopic') or data.get('problem Topic', '')
+        initial_code = data.get('initialCode') or data.get('initial code', '')
+        user_code_progress = data.get('userCodeProgress') or data.get('user_code_progress', '')
 
         if not message or not problem_description or not problem_topic:
             return jsonify({
@@ -634,7 +876,8 @@ def api_all_topics():
 
     formatted = [{
         "id": str(i + offset + 1),
-        "name": t.get('name', '').replace(' ', '_').lower().strip('_'),
+        "name": t.get('name', '').strip(),
+        "slug": t.get('slug') or FirebaseService.topic_to_slug(t.get('name', '')),
         "category": t.get('category', 'Uncategorized'),
         "difficulty": t.get('difficulty', 'medium')
     } for i, t in enumerate(paginated)]

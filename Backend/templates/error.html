@@ -3,58 +3,454 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error - DSA Bot</title>
+    <title>Oops! Error - GenCode</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            /* Vibrant Neon Colors */
+            --primary: #6366f1;
+            --accent-pink: #ec4899;
+            --accent-purple: #a855f7;
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            
+            /* Light Mode */
+            --bg-light: #f8fafc;
+            --card-light: #ffffff;
+            --text-light: #0f172a;
+            --text-muted-light: #64748b;
+            --border-light: #e2e8f0;
+            
+            /* Dark Mode */
+            --bg-dark: #0f172a;
+            --card-dark: #1e293b;
+            --text-dark: #f1f5f9;
+            --text-muted-dark: #94a3b8;
+            --border-dark: #334155;
+            
+            /* Current Mode */
+            --bg: var(--bg-light);
+            --card: var(--card-light);
+            --text: var(--text-light);
+            --text-muted: var(--text-muted-light);
+            --border: var(--border-light);
+            
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html.dark {
+            --bg: var(--bg-dark);
+            --card: var(--card-dark);
+            --text: var(--text-dark);
+            --text-muted: var(--text-muted-dark);
+            --border: var(--border-dark);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
-            color: #343a40;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            padding: 20px;
-            text-align: center;
+            min-height: 100vh;
+            padding: 1rem;
+            transition: var(--transition);
+            overflow: hidden;
+            position: relative;
         }
-        .error-container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 40px;
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(
+                circle at 20% 50%,
+                rgba(236, 72, 153, 0.1) 0%,
+                transparent 50%
+            ),
+            radial-gradient(
+                circle at 80% 80%,
+                rgba(168, 85, 247, 0.1) 0%,
+                transparent 50%
+            ),
+            radial-gradient(
+                circle at 40% 40%,
+                rgba(99, 102, 241, 0.1) 0%,
+                transparent 50%
+            );
+            animation: float 15s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(50px, 50px); }
+        }
+
+        .container {
             max-width: 600px;
             width: 100%;
+            position: relative;
+            z-index: 1;
         }
-        h1 {
-            color: #dc3545;
-            margin-bottom: 20px;
+
+        .error-container {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            max-width: 100%;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.6s ease-out;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
         }
+
+        .error-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: scanLine 3s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .error-icon-wrapper {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2rem;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .error-icon {
+            font-size: 5rem;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: block;
+            animation: shake 0.6s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(-8px) rotate(-2deg); }
+            50% { transform: translateX(8px) rotate(2deg); }
+            75% { transform: translateX(-8px) rotate(-2deg); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .error-code {
+            font-family: 'Poppins', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            animation: slideDown 0.8s ease-out 0.1s backwards;
+        }
+
+        .error-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 1rem;
+            animation: slideDown 0.8s ease-out 0.2s backwards;
+        }
+
         .error-message {
-            margin-bottom: 30px;
-            color: #6c757d;
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            animation: slideDown 0.8s ease-out 0.3s backwards;
         }
-        .back-button {
-            display: inline-block;
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 4px;
+
+        .error-details {
+            background: var(--border);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+            max-height: 150px;
+            overflow-y: auto;
+            animation: slideDown 0.8s ease-out 0.4s backwards;
+        }
+
+        .error-details-title {
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--text);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            flex-direction: column;
+            animation: slideDown 0.8s ease-out 0.5s backwards;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 1rem 1.75rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: var(--transition);
             text-decoration: none;
-            font-weight: 500;
-            transition: background-color 0.2s;
+            position: relative;
+            overflow: hidden;
         }
-        .back-button:hover {
-            background-color: #0069d9;
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.5s;
+            z-index: -1;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text-muted);
+            border: 2px solid transparent;
+        }
+
+        .btn-secondary:hover {
+            background: var(--text);
+            color: var(--card);
+            transform: translateY(-2px);
+        }
+
+        .theme-toggle-btn {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            transition: var(--transition);
+            z-index: 100;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.1) rotate(20deg);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+        }
+
+        .support-text {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--border);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .support-text a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .support-text a:hover {
+            text-decoration: underline;
+            color: var(--accent-pink);
+        }
+
+        /* Animations */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .error-container {
+                padding: 2rem 1.5rem;
+            }
+
+            .error-code {
+                font-size: 2.5rem;
+            }
+
+            .error-title {
+                font-size: 1.4rem;
+            }
+
+            .error-icon {
+                font-size: 3.5rem;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                padding: 0.875rem 1.5rem;
+                font-size: 0.95rem;
+            }
+
+            .theme-toggle-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 1rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="error-container">
-        <h1>Oops! Something went wrong</h1>
-        <div class="error-message">
-            <p>{{ error }}</p>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle-btn" id="themeToggle" title="Toggle dark mode">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <!-- Error Container -->
+    <div class="container">
+        <div class="error-container">
+            <div class="error-icon-wrapper">
+                <i class="fas fa-triangle-exclamation error-icon"></i>
+            </div>
+
+            <div class="error-code" id="errorCode">{{ error_code | default('500', true) }}</div>
+            <h1 class="error-title" id="errorTitle">{{ error_title | default('Oops! Something Went Wrong', true) }}</h1>
+            <p class="error-message" id="errorMessage">
+                {{ error_message | default('We encountered an unexpected error. Our team has been notified and is working on a fix.', true) }}
+            </p>
+
+            {% if error_details %}
+            <div class="error-details">
+                <div class="error-details-title">Error Details</div>
+                <div>{{ error_details }}</div>
+            </div>
+            {% endif %}
+
+            <div class="actions">
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-home"></i>
+                    Back to Home
+                </a>
+                <a href="/problems" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Practice
+                </a>
+            </div>
+
+            <div class="support-text">
+                Need help? <a href="mailto:support@gencode.dev">Contact Support</a> or check our <a href="/docs">Documentation</a>
+            </div>
         </div>
-        <a href="javascript:history.back()" class="back-button">Go Back</a>
     </div>
+
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+
+        // Initialize theme
+        function initTheme() {
+            const savedTheme = localStorage.getItem('gencode-theme') || 'light';
+            if (savedTheme === 'dark') {
+                html.classList.add('dark');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('gencode-theme', isDark ? 'dark' : 'light');
+            themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        });
+
+        initTheme();
+    </script>
 </body>
 </html>

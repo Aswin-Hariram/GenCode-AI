@@ -1,5 +1,30 @@
 from config.config import get_llm
 
+
+NO_ACTUAL_LOGIC_MARKER = "#NO ACTUAL LOGIC FOUND"
+
+
+def _build_incomplete_logic_report() -> str:
+    return """
+## Incomplete Submission
+
+Your code does not yet contain enough problem-solving logic to evaluate correctness.
+
+### What We Checked
+- The submission was received successfully.
+- The current code structure is still incomplete for a reliable correctness review.
+- Showing a full testcase-based evaluation at this stage would be misleading.
+
+### What To Do Next
+- Implement the core algorithm inside the solution logic.
+- Replace placeholders, TODO blocks, or skeleton-only code with working logic.
+- Run the code once and resubmit after the implementation is meaningfully complete.
+
+### Recommendation
+Keep building the solution, then submit again for a full evaluation.
+""".strip()
+
+
 def submit_code(actualSolution: str, description: str, typedSolution: str, typedLanguage: str) -> dict:
     # Check if the typed solution is empty
     if not typedSolution or typedSolution.strip() == '':
@@ -133,6 +158,10 @@ Test Requirements:
 
         # Use the LLM to generate evaluation
         evaluation = get_llm().invoke(validation_prompt).content
+        no_actual_logic = NO_ACTUAL_LOGIC_MARKER in evaluation
+
+        if no_actual_logic:
+            evaluation = _build_incomplete_logic_report()
 
         # Format the markdown report with enhanced styling
         markdown_report = f"""
@@ -192,7 +221,7 @@ Test Requirements:
                 test_case_data['pass_rate'] = round((test_case_data['passed'] / test_case_data['total']) * 100, 2)
         
         # First check for critical failure indicators
-        if '#NO ACTUAL LOGIC FOUND' in evaluation:
+        if no_actual_logic:
             status = 'Not Accepted'
         else:
             # Check if we have test case data
@@ -207,7 +236,8 @@ Test Requirements:
         
         return {
             'markdown_report': markdown_report,
-            'status': status
+            'status': status,
+            'no_actual_logic': no_actual_logic,
         }
 
     except Exception as e:

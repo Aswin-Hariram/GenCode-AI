@@ -1,9 +1,11 @@
 const DEFAULT_API_BASE_URL = "http://localhost:8000";
 export const QUESTION_REQUEST_TIMEOUT_MS = 45000;
+export const RANDOM_FAANG_REQUEST_TIMEOUT_MS = 120000;
 export const SUBMIT_REQUEST_TIMEOUT_MS = 120000;
 
 const DEFAULT_ENDPOINTS = {
   getQuestion: "/get_dsa_question",
+  getRandomFaangQuestion: "/generate_random_faang_question",
   submit: "/submit",
   compile: "/compiler",
   changeLanguage: "/changeLanguage",
@@ -54,6 +56,13 @@ export function getQuestionUrl(topic) {
     DEFAULT_ENDPOINTS.getQuestion
   );
   return buildApiUrl(path, topic ? { topic } : undefined);
+}
+
+export function getRandomFaangQuestionUrl() {
+  return `${getApiBaseUrl()}${normalizePath(
+    process.env.NEXT_PUBLIC_RANDOM_FAANG_QUESTION_ENDPOINT,
+    DEFAULT_ENDPOINTS.getRandomFaangQuestion
+  )}`;
 }
 
 export function getSubmitUrl() {

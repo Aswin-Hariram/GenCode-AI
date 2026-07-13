@@ -21,7 +21,7 @@ const tips = [
 ];
 
 const ResultsTab = ({ response, status, theme = 'light', isLoading = false }) => {
-  const isError = response?.includes('#NO ACTUAL LOGIC FOUND') || status?.includes('Not Accepted') || status?.includes('Partially Accepted');
+  const isError = status?.includes('Not Accepted') || status?.includes('Partially Accepted');
   return (
     <div className="animate-fadeIn space-y-6 p-6 font-lexend " style={{ fontFamily: 'Lexend, sans-serif' }}>
       {isLoading ? (

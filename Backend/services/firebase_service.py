@@ -1,9 +1,19 @@
-import firebase_admin
-from firebase_admin import credentials, firestore
+import json
 import os
 import random
+import re
 import threading
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
+
+try:
+    import firebase_admin
+    from firebase_admin import credentials, firestore
+    _firebase_import_error = None
+except ModuleNotFoundError as exc:
+    firebase_admin = None
+    credentials = None
+    firestore = None
+    _firebase_import_error = exc
 
 
 SERVICE_ACCOUNT_PATH = os.path.join(
@@ -25,15 +35,15 @@ class FirebaseService:
             if cls._instance and cls.db is not None:
                 return
 
-            if not os.path.exists(SERVICE_ACCOUNT_PATH):
-                raise FileNotFoundError(
-                    f"Firebase service account key not found at {SERVICE_ACCOUNT_PATH}"
+            if _firebase_import_error is not None:
+                raise RuntimeError(
+                    f"Firebase dependency is missing: {_firebase_import_error}"
                 )
 
             try:
                 cls._instance = firebase_admin.get_app()
             except ValueError:
-                cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
+                cred = credentials.Certificate(cls._get_service_account_credentials())
                 try:
                     cls._instance = firebase_admin.initialize_app(cred)
                 except ValueError:
@@ -42,6 +52,42 @@ class FirebaseService:
                     cls._instance = firebase_admin.get_app()
 
             cls.db = firestore.client()
+
+    @staticmethod
+    def _get_service_account_credentials():
+        service_account_json = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
+        if service_account_json:
+            return json.loads(service_account_json)
+
+        service_account_path = (
+            os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH')
+            or os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+            or SERVICE_ACCOUNT_PATH
+        )
+
+        if not os.path.exists(service_account_path):
+            raise FileNotFoundError(
+                "Firebase service account key not found. "
+                "Set FIREBASE_SERVICE_ACCOUNT_PATH, GOOGLE_APPLICATION_CREDENTIALS, "
+                "or add Backend/serviceAccountKey.json."
+            )
+
+        return service_account_path
+
+    @staticmethod
+    def topic_to_slug(topic_name):
+        return re.sub(r'[^a-z0-9]+', '-', str(topic_name).strip().lower()).strip('-')
+
+    @classmethod
+    def get_firebase_readiness(cls):
+        if _firebase_import_error is not None:
+            return False, f"Missing Firebase dependency: {_firebase_import_error}"
+
+        try:
+            cls._get_service_account_credentials()
+            return True, "Firebase credentials are present."
+        except Exception as exc:
+            return False, str(exc)
     
     @classmethod
     def get_db(cls):
@@ -62,18 +108,22 @@ class FirebaseService:
         return cls.get_db().collection('question_history')
 
     @classmethod
+    def get_generated_questions_collection(cls):
+        return cls.get_db().collection('generated_questions')
+
+    @classmethod
     def add_to_question_history(cls, question_hash):
         """Add a question hash to the history and clean up old entries."""
         try:
             history_ref = cls.get_question_history_collection()
+            cutoff = datetime.now(timezone.utc) - timedelta(days=1)
             history_ref.add({
                 'hash': question_hash,
                 'created_at': firestore.SERVER_TIMESTAMP
             })
 
             # Clean up entries older than 1 day
-            one_day_ago = firestore.SERVER_TIMESTAMP - timedelta(days=1)
-            old_entries_query = history_ref.where('created_at', '<', one_day_ago)
+            old_entries_query = history_ref.where('created_at', '<', cutoff)
             old_docs = list(old_entries_query.stream())
 
             if old_docs:
@@ -90,8 +140,8 @@ class FirebaseService:
         try:
             history_ref = cls.get_question_history_collection()
             # Check for the hash in the last 24 hours
-            one_day_ago = firestore.SERVER_TIMESTAMP - timedelta(days=1)
-            query = history_ref.where('hash', '==', question_hash).where('created_at', '>', one_day_ago).limit(1)
+            cutoff = datetime.now(timezone.utc) - timedelta(days=1)
+            query = history_ref.where('hash', '==', question_hash).where('created_at', '>', cutoff).limit(1)
             docs = list(query.stream())
             return len(docs) > 0
         except Exception as e:
@@ -173,11 +223,58 @@ class FirebaseService:
             data = doc.to_dict()
             topics.append({
                 'name': doc.id,
+                'slug': cls.topic_to_slug(doc.id),
                 'category': data.get('category'),
                 'difficulty': data.get('difficulty', 'medium'),  # Default to medium if not set
                 'created_at': data.get('created_at')
             })
         return topics
+
+    @classmethod
+    def save_generated_question(cls, question_data):
+        """Persist a generated random FAANG-style question for later reuse."""
+        question_payload = {
+            'title': question_data.get('title', ''),
+            'difficulty': question_data.get('difficulty', 'Medium'),
+            'description': question_data.get('description', ''),
+            'markdown': question_data.get('markdown', ''),
+            'initial_code': question_data.get('initial_code', ''),
+            'solution': question_data.get('solution', ''),
+            'realtopic': question_data.get('realtopic', ''),
+            'time_complexity': question_data.get('time_complexity', ''),
+            'space_complexity': question_data.get('space_complexity', ''),
+            'testcases': question_data.get('testcases', []),
+            'hidden_testcases': question_data.get('hidden_testcases', []),
+            'source': question_data.get('source', 'faang_random'),
+            'company': question_data.get('company', 'FAANG'),
+            'created_at': firestore.SERVER_TIMESTAMP,
+        }
+
+        doc_ref = cls.get_generated_questions_collection().document()
+        doc_ref.set(question_payload)
+        return doc_ref.id
+
+    @classmethod
+    def find_topic(cls, topic_identifier):
+        """Find a topic by its Firestore name or the slug returned to the frontend."""
+        normalized_identifier = str(topic_identifier or '').strip()
+        if not normalized_identifier:
+            return None
+
+        normalized_slug = cls.topic_to_slug(normalized_identifier)
+
+        for topic in cls.get_all_topics():
+            topic_name = str(topic.get('name', '')).strip()
+            if not topic_name:
+                continue
+
+            if topic_name.lower() == normalized_identifier.lower():
+                return topic
+
+            if topic.get('slug') == normalized_slug:
+                return topic
+
+        return None
     
     @classmethod
     def add_topic(cls, topic_data):
@@ -282,13 +379,7 @@ class FirebaseService:
     def track_topic_usage(cls, topic_name):
         """Track when a topic is used (for direct selection or question generation)"""
         try:
-            # Perform a case-insensitive search for the topic to ensure data consistency
-            all_topics = cls.get_all_topics()
-            found_topic = None
-            for topic in all_topics:
-                if topic.get('name', '').lower() == topic_name.lower():
-                    found_topic = topic
-                    break
+            found_topic = cls.find_topic(topic_name)
 
             if found_topic:
                 # Use the canonical name and category from the database

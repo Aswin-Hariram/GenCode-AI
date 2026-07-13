@@ -1,66 +1,89 @@
 import re
 
 from config.config import get_llm
+from services.language_utils import is_supported_language, language_label, normalize_language
 
 def LangChange(code, fromLang, toLang):
     """Convert the initial code from one language to another language"""
+    source_language = normalize_language(fromLang)
+    target_language = normalize_language(toLang)
 
-    prompt = f""" You are a code converter that accurately simulates the behavior of a code converter.
-    
-    You will be given code to convert from one language to another. Act exactly like a real code converter would:
-    [IMPORTANT]:NEVER modify the original code
+    if not code or not str(code).strip():
+        return {
+            "result": "Failure",
+            "message": "Code cannot be empty.",
+            "code": "",
+            "language": target_language or toLang,
+        }
 
-    1. Convert the code from the given language to the desired language.
-    2. The converted code should not have any syntax errors.
-    3. The converted code should be the initial code template to solve the same problem.
-    4. You have NO rights to complete the pending program or TODO mentioned.
-    5. Incase of from language is same to to language, return the same code.
-    6. Incase of python to any language enusure the converted code is a valid code with proper header/import files and syntax.
-    7. Incase of any language to java ensure the converted code is a valid java code (also mainly while converting cpp vector to java arraylist, ensure the java code is a valid java code) and indent the java code and the java code should have proper "public class Main" and "public static void main(String[] args)" 
-    8. The code convertion should be 100% accurate and should not have any syntax errors.
-    Code to convert:
-   [code]: {code}
-    Convert the above code from {fromLang} to {toLang} 
-   Respond in this exact format:
-   [Result]: Success or Failure
-   [code]: The converted code
-    
-    """
+    if not is_supported_language(source_language) or not is_supported_language(target_language):
+        return {
+            "result": "Failure",
+            "message": "Unsupported language requested for conversion.",
+            "code": "",
+            "language": target_language or toLang,
+        }
 
-    response = get_llm().invoke(prompt).content
+    if source_language == target_language:
+        return {
+            "result": "Success",
+            "code": code,
+            "language": target_language,
+        }
 
-   
-    # Debug: Print the raw response for inspection
-    print("\n--- Raw LLM Response ---")
-    print(response)
-    print("----------------------\n")
+    prompt = f"""You convert code between languages without changing its intent.
 
-    # Extract result
-    result_match = re.search(r'\[Result\]:\s*(.*?)(?:\n|$)', response, re.IGNORECASE | re.MULTILINE)
-    result = result_match.group(1).strip() if result_match else "Unknown"
-    
-    # Try multiple patterns to extract the code block
+Rules:
+1. Preserve the behavior, structure, comments, and TODO markers.
+2. Do not explain anything outside the required format.
+3. Do not complete unfinished logic.
+4. Keep starter templates as starter templates.
+5. If the source contains a runnable main entry point, keep a runnable equivalent in the target language.
+6. For Java output, include a valid class with a valid main method when the source has one.
+7. Return only the converted code in a fenced code block.
+
+Source language: {language_label(source_language)}
+Target language: {language_label(target_language)}
+
+Respond in exactly this format:
+[Result]: Success
+```{target_language}
+<converted code>
+```
+
+Source code:
+```{source_language}
+{code}
+```
+"""
+
+    response = get_llm().invoke(prompt).content.strip()
+    result_match = re.search(r"\[Result\]:\s*(.+?)(?:\n|$)", response, re.IGNORECASE)
+    result = result_match.group(1).strip() if result_match else "Failure"
+
     code_patterns = [
-        r'```(?:' + re.escape(toLang) + r'|c\+\+)?\s*\n([\s\S]*?)\n```',  # Matches ```lang or ```
-        r'```(?:' + re.escape(toLang) + r'|c\+\+)?\s*([\s\S]*?)```',      # More permissive
-        r'\[code\]:\s*\n?([\s\S]*?)(?=\n\[|$)',                         # Matches [code]: ...
-        r'```(?:[\s\S]*?)```'  # Last resort: any code block
+        rf"```{re.escape(target_language)}\s*\n([\s\S]*?)\n```",
+        r"```[\w#+-]*\s*\n([\s\S]*?)\n```",
+        r"\[code\]:\s*\n?([\s\S]*?)(?=\n\[|$)",
     ]
-    
-    code = "Unknown"
+
+    converted_code = ""
     for pattern in code_patterns:
         code_match = re.search(pattern, response, re.IGNORECASE)
         if code_match:
-            code = code_match.group(1).strip()
-            # Clean up any remaining markdown or language specifiers
-            code = re.sub(r'^' + re.escape(toLang) + r'\s*\n?', '', code, flags=re.IGNORECASE)
-            code = re.sub(r'^c\+\+\s*\n?', '', code, flags=re.IGNORECASE)
+            converted_code = code_match.group(1).strip()
             break
-    
 
+    if not converted_code:
+        return {
+            "result": "Failure",
+            "message": "The model did not return convertible code.",
+            "code": "",
+            "language": target_language,
+        }
 
     return {
-        'result': result,
-        'code': code,
-        'language': toLang
+        "result": "Success" if result.lower() == "success" else result,
+        "code": converted_code,
+        "language": target_language,
     }
