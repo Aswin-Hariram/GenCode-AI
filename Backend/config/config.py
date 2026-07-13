@@ -174,7 +174,7 @@ def get_llm():
         return _llm
 
     try:
-        primary = _build_gemini_llm()
+        primary = _build_openrouter_llm()
         backup = _build_openrouter_llm()
 
         if primary and backup:
