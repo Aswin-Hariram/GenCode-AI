@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { FiBook, FiClock, FiRotateCw, FiX, FiAlertCircle, FiSearch } from 'react-icons/fi';
+import { FiBook, FiClock, FiRotateCw, FiX, FiAlertCircle, FiSearch, FiGrid, FiLayout, FiType, FiLink, FiGitBranch, FiShare2, FiArrowUp, FiArrowDown, FiZap, FiLayers, FiList, FiHash, FiTrendingUp, FiTarget, FiMove, FiBox, FiRefreshCw, FiSlash, FiStar, FiCode, FiCalculator, FiCornerDownRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useSidebar } from '../../../context/SidebarContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -427,6 +427,68 @@ const CombinedSidebar = () => {
     }
   };
 
+  // Get category icon based on category name using professional react-icons
+  const getCategoryIcon = (category) => {
+    const categoryIcons = {
+      'arrays': <FiGrid className="w-4 h-4" />,
+      'matrix': <FiLayout className="w-4 h-4" />,
+      'string': <FiType className="w-4 h-4" />,
+      'linked-lists': <FiLink className="w-4 h-4" />,
+      'trees': <FiGitBranch className="w-4 h-4" />,
+      'graphs': <FiShare2 className="w-4 h-4" />,
+      'sorting': <FiArrowUp className="w-4 h-4" />,
+      'searching': <FiSearch className="w-4 h-4" />,
+      'dynamic-programming': <FiZap className="w-4 h-4" />,
+      'stack': <FiLayers className="w-4 h-4" />,
+      'queue': <FiList className="w-4 h-4" />,
+      'hash-table': <FiHash className="w-4 h-4" />,
+      'heap': <FiTrendingUp className="w-4 h-4" />,
+      'trie': <FiGitBranch className="w-4 h-4" />,
+      'binary-search': <FiTarget className="w-4 h-4" />,
+      'two-pointers': <FiMove className="w-4 h-4" />,
+      'sliding-window': <FiBox className="w-4 h-4" />,
+      'backtracking': <FiRefreshCw className="w-4 h-4" />,
+      'divide-and-conquer': <FiSlash className="w-4 h-4" />,
+      'greedy': <FiStar className="w-4 h-4" />,
+      'bit-manipulation': <FiCode className="w-4 h-4" />,
+      'math': <FiCalculator className="w-4 h-4" />,
+      'geometry': <FiCornerDownRight className="w-4 h-4" />,
+      'other': <FiBook className="w-4 h-4" />
+    };
+    return categoryIcons[category?.toLowerCase()] || <FiBook className="w-4 h-4" />;
+  };
+
+  // Format relative time for last_used
+  const formatRelativeTime = (lastUsed) => {
+    if (!lastUsed) return '';
+    
+    // If it's already a relative time string, return as is
+    if (lastUsed.includes('ago') || lastUsed.includes('just') || lastUsed.includes('minute') || lastUsed.includes('hour') || lastUsed.includes('day') || lastUsed.includes('week') || lastUsed.includes('month')) {
+      return lastUsed;
+    }
+    
+    try {
+      const date = new Date(lastUsed);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+      const diffWeeks = Math.floor(diffDays / 7);
+      const diffMonths = Math.floor(diffDays / 30);
+      
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      if (diffWeeks < 4) return `${diffWeeks}w ago`;
+      if (diffMonths < 12) return `${diffMonths}mo ago`;
+      return `${Math.floor(diffMonths / 12)}y ago`;
+    } catch (e) {
+      return lastUsed;
+    }
+  };
+
   const handlePractice = async (topicName) => {
     try {
       closeSidebar();
@@ -683,76 +745,85 @@ const CombinedSidebar = () => {
                     stiffness: 300,
                     damping: 20
                   }}
-                  className={`group rounded-lg border transition-all duration-200 ${
+                  className={`group rounded-xl border transition-all duration-200 overflow-hidden ${
                     currentTheme === 'dark'
-                      ? 'bg-gray-800 border-gray-700 hover:border-blue-700 hover:shadow-lg hover:shadow-blue-900/10'
-                      : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'
+                      ? 'bg-gradient-to-br from-gray-800 to-gray-800/90 border-gray-700 hover:border-blue-600 hover:shadow-lg hover:shadow-blue-900/15'
+                      : 'bg-gradient-to-br from-white to-gray-50 border-gray-200 hover:border-blue-400 hover:shadow-md'
                   }`}
                 >
+                  {/* Difficulty Color Bar */}
+                  <div className={`h-1.5 w-full ${
+                    topic.difficulty?.toLowerCase() === 'hard' 
+                      ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                      : topic.difficulty?.toLowerCase() === 'medium' 
+                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500' 
+                        : 'bg-gradient-to-r from-green-500 to-emerald-600'
+                  }`} />
+                  
                   <div className="p-4">
                     <div className="flex justify-between items-start gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                        {/* Category Badge with Icon */}
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${
                             currentTheme === 'dark'
-                              ? 'bg-blue-900/40 text-blue-300'
-                              : 'bg-blue-50 text-blue-700'
+                              ? 'bg-blue-900/40 text-blue-300 border border-blue-800/50'
+                              : 'bg-blue-50 text-blue-700 border border-blue-100'
                           }`}>
-                            {topic.category || 'General'}
+                            {getCategoryIcon(topic.category)}
+                            <span className="capitalize">{topic.category || 'General'}</span>
                           </span>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                            currentTheme === 'dark'
-                              ? topic.difficulty?.toLowerCase() === 'hard' ? 'bg-red-900/30 text-red-300' :
-                                topic.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-900/30 text-yellow-300' :
-                                'bg-green-900/30 text-green-300'
-                              : topic.difficulty?.toLowerCase() === 'hard' ? 'bg-red-100 text-red-800' :
-                                topic.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-green-100 text-green-800'
-                          }`}>
+                          <span className={getDifficultyStyles(topic.difficulty)}>
                             {topic.difficulty || 'Easy'}
                           </span>
                         </div>
                         
-                        <h3 className={`text-base font-semibold line-clamp-2 mb-1.5 ${
+                        {/* Topic Title */}
+                        <h3 className={`text-base font-bold line-clamp-2 mb-2 leading-snug ${
                           currentTheme === 'dark' ? 'text-white' : 'text-gray-900'
                         }`}>
                           {formatTopicName(topic.name)}
                         </h3>
                         
+                        {/* Recent Activity Indicator */}
                         {view === 'recent' && topic.last_used && (
-                          <p className={`text-xs flex items-center ${
+                          <div className={`flex items-center gap-1.5 text-xs ${
                             currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                           }`}>
-                            <FiClock className="mr-1 w-3 h-3 flex-shrink-0" />
-                            {topic.last_used}
-                          </p>
+                            <FiClock className="w-3 h-3 flex-shrink-0" />
+                            <span className="font-medium">{formatRelativeTime(topic.last_used)}</span>
+                          </div>
                         )}
                       </div>
                       
-                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded text-xs font-medium ${
+                      {/* Topic Number Badge */}
+                      <span className={`flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold shadow-sm ${
                         currentTheme === 'dark' 
-                          ? 'bg-gray-700 text-gray-300' 
-                          : 'bg-gray-100 text-gray-600'
+                          ? 'bg-gray-700 text-gray-200 border border-gray-600' 
+                          : 'bg-gray-100 text-gray-700 border border-gray-200'
                       }`}>
                         {index + 1}
                       </span>
                     </div>
                     
-                    <div className={`mt-3 pt-3 border-t ${currentTheme === 'dark' ? 'dark:border-gray-100' : 'dark:border-gray-100'}`}>
+                    {/* Practice Button */}
+                    <div className={`mt-4 pt-3 border-t ${
+                      currentTheme === 'dark' ? 'border-gray-700' : 'border-gray-100'
+                    }`}>
                       <button
-                        className={`w-full flex items-center justify-center px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+                        className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 transform active:scale-[0.98] ${
                           currentTheme === 'dark'
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-800'
+                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-md hover:shadow-lg hover:shadow-blue-900/20'
+                            : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white shadow-md hover:shadow-lg hover:shadow-blue-500/20'
                         }`}
                         onClick={(e) => {
                           e.preventDefault();
                           handlePractice(topic.name);
                         }}
                       >
-                        {view === 'recent' ? 'Practice' : 'Try Now'}
-                        <svg className="ml-1 -mr-0.5 h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                          <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                        <span>{view === 'recent' ? 'Practice Again' : 'Start Practice'}</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
                       </button>
                     </div>
