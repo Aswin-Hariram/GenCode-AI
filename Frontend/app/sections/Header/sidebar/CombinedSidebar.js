@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { FiBook, FiClock, FiRotateCw, FiX, FiAlertCircle, FiSearch, FiGrid, FiLayout, FiType, FiLink, FiGitBranch, FiShare2, FiArrowUp, FiArrowDown, FiZap, FiLayers, FiList, FiHash, FiTrendingUp, FiTarget, FiMove, FiBox, FiRefreshCw, FiSlash, FiStar, FiCode, FiCalculator, FiCornerDownRight } from 'react-icons/fi';
+import { FiBook, FiClock, FiRotateCw, FiX, FiAlertCircle, FiSearch, FiGrid, FiLayout, FiType, FiLink, FiGitBranch, FiShare2, FiArrowUp, FiArrowDown, FiZap, FiLayers, FiList, FiHash, FiTrendingUp, FiTarget, FiMove, FiBox, FiRefreshCw, FiSlash, FiStar, FiCode, FiCalculator as FiCalcIcon, FiCornerDownRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useSidebar } from '../../../context/SidebarContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -451,7 +451,7 @@ const CombinedSidebar = () => {
       'divide-and-conquer': <FiSlash className="w-4 h-4" />,
       'greedy': <FiStar className="w-4 h-4" />,
       'bit-manipulation': <FiCode className="w-4 h-4" />,
-      'math': <FiCalculator className="w-4 h-4" />,
+      'math': <FiCalcIcon className="w-4 h-4" />,
       'geometry': <FiCornerDownRight className="w-4 h-4" />,
       'other': <FiBook className="w-4 h-4" />
     };
