@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { FiBook, FiClock, FiRotateCw, FiX, FiAlertCircle, FiSearch } from 'react-icons/fi';
+import { FiBook, FiClock, FiRotateCw, FiX, FiAlertCircle, FiSearch, FiStar, FiAward, FiTrophy, FiFlame, FiCheckCircle, FiBarChart2, FiHeart } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
 // Utility hook: returns a debounced copy of the supplied value
@@ -15,6 +15,71 @@ function useDebounce(value, delay = 300) {
 
   return debouncedValue;
 }
+
+// Helper function to calculate practice streak for a topic
+const calculateStreak = (userProgress, topicName) => {
+  const topicData = userProgress[topicName];
+  if (!topicData || !topicData.practiceHistory) return 0;
+  
+  const history = topicData.practiceHistory;
+  if (!Array.isArray(history) || history.length === 0) return 0;
+  
+  // Sort by date descending
+  const sortedHistory = [...history].sort((a, b) => 
+    new Date(b.date) - new Date(a.date)
+  );
+  
+  let streak = 0;
+  const now = new Date();
+  let expectedDate = new Date(sortedHistory[0].date);
+  
+  // Check if the most recent practice was today or yesterday
+  const daysDiff = Math.floor((now - expectedDate) / (1000 * 60 * 60 * 24));
+  if (daysDiff > 1) return 0; // Streak broken
+  
+  for (let i = 0; i < sortedHistory.length; i++) {
+    const currentDate = new Date(sortedHistory[i].date);
+    const prevDate = i > 0 ? new Date(sortedHistory[i - 1].date) : null;
+    
+    if (i === 0) {
+      streak = 1;
+    } else if (prevDate) {
+      const diffDays = Math.floor((currentDate - prevDate) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 1) {
+        streak++;
+      } else {
+        break; // Streak broken
+      }
+    }
+  }
+  
+  return streak;
+};
+
+// Helper function to calculate performance trend
+const calculatePerformanceTrend = (topicProgress) => {
+  if (!topicProgress || !topicProgress.scores || !Array.isArray(topicProgress.scores)) {
+    return 'stable';
+  }
+  
+  const scores = topicProgress.scores;
+  if (scores.length < 2) return 'stable';
+  
+  // Get last 5 scores
+  const recentScores = scores.slice(-5);
+  
+  // Calculate average of first half and second half
+  const midPoint = Math.floor(recentScores.length / 2);
+  const firstHalfAvg = recentScores.slice(0, midPoint).reduce((a, b) => a + b, 0) / midPoint;
+  const secondHalfAvg = recentScores.slice(midPoint).reduce((a, b) => a + b, 0) / (recentScores.length - midPoint);
+  
+  const diff = secondHalfAvg - firstHalfAvg;
+  
+  if (diff > 10) return 'improving';
+  if (diff < -10) return 'declining';
+  return 'stable';
+};
+
 import { useSidebar } from '../../context/SidebarContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -118,7 +183,7 @@ const CombinedSidebar = () => {
   }, [isResizing, handleResizeMouseMove, handleResizeMouseUp]);
   // --- End Sidebar Resizing Logic ---
 
-  // Fetch recent topics
+  // Fetch recent topics with enhanced data
   useEffect(() => {
     if (!isSidebarOpen || view !== 'recent') return;
 
@@ -149,12 +214,28 @@ const CombinedSidebar = () => {
 
         if (isMounted) {
           if (recentTopicsResponse && recentTopicsResponse.success && Array.isArray(recentTopicsResponse.data)) {
-            const enrichedRecentTopics = recentTopicsResponse.data.map(recent => {
+            // Get user progress from localStorage
+            const userProgress = JSON.parse(localStorage.getItem('userProgress') || '{}');
+            const favorites = JSON.parse(localStorage.getItem('favoriteTopics') || '[]');
+            
+            const enrichedRecentTopics = recentTopicsResponse.data.map((recent, index) => {
               const fullTopic = allTopicsMap.get(recent.name);
+              const topicProgress = userProgress[recent.name] || {};
+              
               return {
                 ...recent,
                 category: fullTopic ? fullTopic.category : 'Uncategorized',
                 difficulty: fullTopic ? fullTopic.difficulty : 'Easy',
+                // Enhanced features
+                completed: topicProgress.completed || false,
+                attempts: topicProgress.attempts || 0,
+                successRate: topicProgress.successRate || 0,
+                timeSpent: topicProgress.timeSpent || 0,
+                lastScore: topicProgress.lastScore || 0,
+                isFavorite: favorites.includes(recent.name),
+                streak: calculateStreak(userProgress, recent.name),
+                performanceTrend: calculatePerformanceTrend(topicProgress),
+                rank: index + 1
               };
             });
             setRecentTopics(enrichedRecentTopics);
@@ -463,6 +544,38 @@ const CombinedSidebar = () => {
     }
   };
 
+  // Toggle favorite status for a topic
+  const toggleFavorite = useCallback((topicName) => {
+    const favorites = JSON.parse(localStorage.getItem('favoriteTopics') || '[]');
+    const index = favorites.indexOf(topicName);
+    
+    if (index > -1) {
+      favorites.splice(index, 1);
+    } else {
+      favorites.push(topicName);
+    }
+    
+    localStorage.setItem('favoriteTopics', JSON.stringify(favorites));
+    
+    // Update state to reflect the change
+    setRecentTopics(prev => prev.map(topic => 
+      topic.name === topicName 
+        ? { ...topic, isFavorite: !topic.isFavorite }
+        : topic
+    ));
+  }, []);
+
+  // Format time in seconds to readable string
+  const formatTime = (seconds) => {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins < 60) return `${mins}m ${secs}s`;
+    const hours = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    return `${hours}h ${remainingMins}m`;
+  };
+
   if (!isSidebarOpen) return null;
 
   const currentIsLoading = isLoading[view];
@@ -765,7 +878,7 @@ const CombinedSidebar = () => {
             <div className="space-y-3">
               {topicsToShow.map((topic, index) => (
                 <motion.div
-                  key={`${view}-${index}`}
+                  key={`${view}-${topic.name || index}`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
@@ -781,9 +894,11 @@ const CombinedSidebar = () => {
                   }`}
                 >
                   <div className="p-4">
-                    <div className="flex justify-between items-start gap-3">
+                    {/* Header with badges and favorite button */}
+                    <div className="flex justify-between items-start gap-3 mb-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          {/* Category Badge */}
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                             currentTheme === 'dark'
                               ? 'bg-blue-900/40 text-blue-300'
@@ -791,6 +906,8 @@ const CombinedSidebar = () => {
                           }`}>
                             {topic.category || 'General'}
                           </span>
+                          
+                          {/* Difficulty Badge */}
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                             currentTheme === 'dark'
                               ? topic.difficulty?.toLowerCase() === 'hard' ? 'bg-red-900/30 text-red-300' :
@@ -802,16 +919,80 @@ const CombinedSidebar = () => {
                           }`}>
                             {topic.difficulty || 'Easy'}
                           </span>
+                          
+                          {/* Favorite Button */}
+                          {view === 'recent' && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleFavorite(topic.name);
+                              }}
+                              className={`ml-1 p-1 rounded-full transition-colors ${
+                                topic.isFavorite
+                                  ? 'text-red-500 hover:text-red-600'
+                                  : currentTheme === 'dark'
+                                    ? 'text-gray-500 hover:text-red-400'
+                                    : 'text-gray-400 hover:text-red-500'
+                              }`}
+                              title={topic.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                            >
+                              <FiHeart className={`w-3.5 h-3.5 ${topic.isFavorite ? 'fill-current' : ''}`} />
+                            </button>
+                          )}
                         </div>
                         
-                        <h3 className={`text-base font-semibold line-clamp-2 mb-1.5 ${
+                        {/* Topic Name */}
+                        <h3 className={`text-base font-semibold line-clamp-2 mb-2 ${
                           currentTheme === 'dark' ? 'text-white' : 'text-gray-900'
                         }`}>
                           {formatTopicName(topic.name)}
                         </h3>
                         
+                        {/* Enhanced Stats Row for Recent Topics */}
+                        {view === 'recent' && (
+                          <div className="grid grid-cols-3 gap-2 mt-2">
+                            {/* Streak */}
+                            {topic.streak > 0 && (
+                              <div className={`flex items-center gap-1 text-xs ${
+                                currentTheme === 'dark' ? 'text-orange-400' : 'text-orange-600'
+                              }`}>
+                                <FiFlame className="w-3 h-3" />
+                                <span>{topic.streak} day{topic.streak !== 1 ? 's' : ''}</span>
+                              </div>
+                            )}
+                            
+                            {/* Completion Status */}
+                            {topic.completed && (
+                              <div className={`flex items-center gap-1 text-xs ${
+                                currentTheme === 'dark' ? 'text-green-400' : 'text-green-600'
+                              }`}>
+                                <FiCheckCircle className="w-3 h-3" />
+                                <span>Completed</span>
+                              </div>
+                            )}
+                            
+                            {/* Performance Trend */}
+                            {topic.performanceTrend && topic.performanceTrend !== 'stable' && (
+                              <div className={`flex items-center gap-1 text-xs ${
+                                topic.performanceTrend === 'improving'
+                                  ? currentTheme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+                                  : currentTheme === 'dark' ? 'text-red-400' : 'text-red-600'
+                              }`}>
+                                {topic.performanceTrend === 'improving' ? (
+                                  <FiBarChart2 className="w-3 h-3" />
+                                ) : (
+                                  <FiAlertCircle className="w-3 h-3" />
+                                )}
+                                <span className="capitalize">{topic.performanceTrend}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Last Used Time */}
                         {view === 'recent' && topic.last_used && (
-                          <p className={`text-xs flex items-center ${
+                          <p className={`text-xs flex items-center mt-2 ${
                             currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                           }`}>
                             <FiClock className="mr-1 w-3 h-3 flex-shrink-0" />
@@ -820,32 +1001,100 @@ const CombinedSidebar = () => {
                         )}
                       </div>
                       
-                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded text-xs font-medium ${
-                        currentTheme === 'dark' 
-                          ? 'bg-gray-700 text-gray-300' 
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {index + 1}
-                      </span>
+                      {/* Rank Badge */}
+                      <div className="flex flex-col items-center gap-1">
+                        {topic.rank <= 3 ? (
+                          <div className={`p-1.5 rounded-lg ${
+                            topic.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' :
+                            topic.rank === 2 ? 'bg-gray-400/20 text-gray-400' :
+                            'bg-orange-500/20 text-orange-500'
+                          }`}>
+                            {topic.rank === 1 ? <FiTrophy className="w-4 h-4" /> :
+                             topic.rank === 2 ? <FiAward className="w-4 h-4" /> :
+                             <FiStar className="w-4 h-4" />}
+                          </div>
+                        ) : (
+                          <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium ${
+                            currentTheme === 'dark' 
+                              ? 'bg-gray-700 text-gray-300' 
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {topic.rank}
+                          </span>
+                        )}
+                        
+                        {/* Success Rate Mini Chart */}
+                        {view === 'recent' && topic.successRate > 0 && (
+                          <div className={`text-xs font-semibold ${
+                            topic.successRate >= 80 ? (currentTheme === 'dark' ? 'text-green-400' : 'text-green-600') :
+                            topic.successRate >= 50 ? (currentTheme === 'dark' ? 'text-yellow-400' : 'text-yellow-600') :
+                            (currentTheme === 'dark' ? 'text-red-400' : 'text-red-600')
+                          }`}>
+                            {topic.successRate}%
+                          </div>
+                        )}
+                      </div>
                     </div>
                     
-                    <div className={`mt-3 pt-3 border-t ${currentTheme === 'dark' ? 'dark:border-gray-100' : 'dark:border-gray-100'}`}>
-                      <button
-                        className={`w-full flex items-center justify-center px-3 py-2 rounded-md text-xs font-medium transition-colors ${
-                          currentTheme === 'dark'
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-800'
-                        }`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handlePractice(topic.name);
-                        }}
-                      >
-                        {view === 'recent' ? 'Practice' : 'Try Now'}
-                        <svg className="ml-1 -mr-0.5 h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                          <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </button>
+                    {/* Progress Bar for Recent Topics */}
+                    {view === 'recent' && topic.attempts > 0 && (
+                      <div className="mb-3">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className={currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                            Progress
+                          </span>
+                          <span className={currentTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+                            {topic.attempts} attempt{topic.attempts !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <div className={`w-full h-1.5 rounded-full overflow-hidden ${
+                          currentTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                        }`}>
+                          <div 
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              topic.successRate >= 80 ? 'bg-green-500' :
+                              topic.successRate >= 50 ? 'bg-yellow-500' :
+                              'bg-red-500'
+                            }`}
+                            style={{ width: `${Math.min(topic.successRate, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Action Buttons */}
+                    <div className={`mt-3 pt-3 border-t ${currentTheme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                      <div className="flex gap-2">
+                        <button
+                          className={`flex-1 flex items-center justify-center px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+                            currentTheme === 'dark'
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                              : 'bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-800'
+                          }`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePractice(topic.name);
+                          }}
+                        >
+                          {view === 'recent' ? 'Continue' : 'Try Now'}
+                          <svg className="ml-1 -mr-0.5 h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                        
+                        {view === 'recent' && topic.timeSpent > 0 && (
+                          <button
+                            className={`px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+                              currentTheme === 'dark'
+                                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                            }`}
+                            title={`Total time: ${formatTime(topic.timeSpent)}`}
+                          >
+                            <FiClock className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </motion.div>
