@@ -100,18 +100,40 @@ def _parse_generated_question(markdown: str, topic: str, source: str = "topic", 
 
 def generate_dsa_question(topic: str) -> dict:
     prompt = f"""
-    You are an expert scenario-based DSA problem writer for interview practice.
-    Generate a polished, visually rich Markdown problem based on the topic "{topic}" without explicitly naming the topic in the title or story.
+        You are an elite technical interview problem designer and competitive programming author.
+
+    Generate a premium-quality, scenario-based DSA problem inspired by the hidden topic "{topic}". The topic should influence only the internal solution—not the title, story, or wording.
+
+    The output should feel comparable to problems from top interview platforms while remaining original, realistic, and enjoyable to read.
 
     Global requirements:
-    - The problem should feel premium, crisp, and realistic, like a curated coding-practice website.
-    - Use clean Markdown that looks good when rendered.
-    - Add structure, rhythm, and visual variety with short paragraphs, blockquotes, tables, and fenced text blocks where helpful.
-    - Do not reveal the hidden underlying DSA topic in the title, story, starter code, or solution.
-    - Do not put the actual solving logic into the initial code.
-    - Keep the examples practical and easy to scan.
-    - Keep the starter code compilable.
-    - Return only the requested content, with no extra commentary.
+    - Produce professional, polished Markdown.
+    - Make the problem feel like it belongs on a premium coding platform.
+    - Never explicitly mention or hint at the underlying DSA topic.
+    - The title should be natural, memorable, and scenario-driven.
+    - The scenario should be realistic (software systems, logistics, gaming, finance, manufacturing, transportation, robotics, education, healthcare, networking, etc.).
+    - Avoid fantasy unless absolutely necessary.
+    - Every section should be concise, information-dense, and easy to scan.
+    - Use proper Markdown spacing.
+    - Use headings exactly as specified.
+    - Use bullet lists where appropriate.
+    - Use fenced code blocks only where requested.
+    - Use blockquotes only where requested.
+    - Use Markdown tables with aligned columns.
+    - Make examples progressively meaningful.
+    - Ensure all examples, explanations, constraints, and code remain perfectly consistent.
+    - The constraints must justify the expected algorithmic complexity.
+    - Do not introduce ambiguity.
+    - Avoid redundant wording.
+    - Avoid unnecessary filler text.
+    - Avoid revealing implementation hints through variable names.
+    - Ensure all terminology remains consistent throughout.
+    - The problem should be solvable using only the information provided.
+    - Starter code must compile successfully.
+    - Do not place solving logic inside starter code.
+    - Return only the requested Markdown.
+    - Do not include introductory or concluding commentary.
+
 
     The output must follow this exact top-level structure:
     
@@ -119,10 +141,7 @@ def generate_dsa_question(topic: str) -> dict:
     Title: [Insert Title Here]
 
     # Problem Statement
-    [Write a vivid scenario-driven problem statement with a strong opening paragraph.]
-    [After the opening, add a short blockquote beginning with `> Why this matters:`.]
-    [Then add a concise `### Goal` subsection describing exactly what the user must compute.]
-
+    [Clear problem description.] want it to look like LeetCode, HackerRank, Codeforces, or coding interview platforms
     ## Input
     [Explain the input clearly in 2 to 4 short bullet points.]
     
