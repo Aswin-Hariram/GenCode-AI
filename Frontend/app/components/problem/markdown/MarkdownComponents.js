@@ -5,70 +5,72 @@ import Image from "next/image";
 
 // Remove pointer-events-auto to allow text selection/copy
 const selectableStyle = "[&_*]:!select-text";
+const MONO = "font-mono";
 
 function AnchorIcon() {
-  return <svg className="inline w-4 h-4 ml-1 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 010 5.656m-3.656-5.656a4 4 0 000 5.656m9.9-2.828a9 9 0 11-12.728 0" /></svg>;
+  return <svg className="inline w-3.5 h-3.5 ml-1.5 opacity-0 group-hover:opacity-60 transition-opacity" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 010 5.656m-3.656-5.656a4 4 0 000 5.656m9.9-2.828a9 9 0 11-12.728 0" /></svg>;
 }
 function ExternalLinkIcon() {
-  return <svg className="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h6m5-3h3v3m-11 8l8-8" /></svg>;
+  return <svg className="inline w-3.5 h-3.5 ml-1 -mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h6m5-3h3v3m-11 8l8-8" /></svg>;
+}
+function CopyIcon() {
+  return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>;
+}
+function CheckIcon() {
+  return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>;
 }
 
 function getTextContent(children) {
   return Children.toArray(children)
     .map((child) => {
-      if (typeof child === "string" || typeof child === "number") {
-        return String(child);
-      }
-      if (isValidElement(child)) {
-        return getTextContent(child.props.children);
-      }
+      if (typeof child === "string" || typeof child === "number") return String(child);
+      if (isValidElement(child)) return getTextContent(child.props.children);
       return "";
     })
     .join("")
     .trim();
 }
 
-function getSectionAccent(title, theme) {
-  const key = title.toLowerCase();
-  const sectionMap = {
-    "problem statement": {
-      icon: "◆",
-      badge: theme === "dark" ? "bg-blue-500/15 text-blue-200 border-blue-400/25" : "bg-blue-100 text-blue-800 border-blue-200",
-    },
-    input: {
-      icon: "→",
-      badge: theme === "dark" ? "bg-emerald-500/15 text-emerald-200 border-emerald-400/25" : "bg-emerald-100 text-emerald-800 border-emerald-200",
-    },
-    output: {
-      icon: "←",
-      badge: theme === "dark" ? "bg-cyan-500/15 text-cyan-200 border-cyan-400/25" : "bg-cyan-100 text-cyan-800 border-cyan-200",
-    },
-    constraints: {
-      icon: "⊡",
-      badge: theme === "dark" ? "bg-amber-500/15 text-amber-200 border-amber-400/25" : "bg-amber-100 text-amber-800 border-amber-200",
-    },
-    examples: {
-      icon: "✦",
-      badge: theme === "dark" ? "bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-400/25" : "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200",
-    },
-    "hints for careful readers": {
-      icon: "⋄",
-      badge: theme === "dark" ? "bg-violet-500/15 text-violet-200 border-violet-400/25" : "bg-violet-100 text-violet-800 border-violet-200",
-    },
-  };
+// Section accent system: every h2 in the description becomes a "code comment"
+// annotating what follows, e.g. `// problem statement`. Colors double as the
+// gutter-line accent for that block.
+const SECTION_ACCENTS = {
+  "problem statement": { icon: "◆", dark: "#818CF8", light: "#4F46E5" },
+  "input": { icon: "→", dark: "#34D399", light: "#059669" },
+  "output": { icon: "←", dark: "#22D3EE", light: "#0891B2" },
+  "constraints": { icon: "⊡", dark: "#FBBF24", light: "#B45309" },
+  "examples": { icon: "✦", dark: "#E879F9", light: "#A21CAF" },
+  "hints for careful readers": { icon: "⋄", dark: "#A78BFA", light: "#7C3AED" },
+};
 
-  return sectionMap[key];
+function getSectionAccent(title, theme) {
+  const entry = SECTION_ACCENTS[title.toLowerCase()];
+  if (!entry) return null;
+  return { icon: entry.icon, color: theme === "dark" ? entry.dark : entry.light };
 }
 
+// Rough language -> accent dot color, so each code tab reads at a glance.
+const LANG_DOTS = {
+  javascript: "#F7DF1E", js: "#F7DF1E", jsx: "#61DAFB", typescript: "#3178C6", ts: "#3178C6",
+  python: "#3776AB", py: "#3776AB", java: "#E76F00", cpp: "#649AD2", "c++": "#649AD2",
+  c: "#A8B9CC", go: "#00ADD8", rust: "#DE9865", ruby: "#CC342D", bash: "#89E051", sh: "#89E051",
+};
+
 export const getMarkdownComponents = (theme) => {
+  const isDark = theme === "dark";
+  const gutterColor = isDark ? "#475569" : "#94A3B8";
+  const inkColor = isDark ? "text-slate-300" : "text-slate-700";
+
   const Code = ({ node, inline, className, children, ...props }) => {
     const match = /language-(\w+)/.exec(className || "");
     const [copied, setCopied] = useState(false);
     const codeRef = useRef(null);
     const codeString = String(children).replace(/\n$/, "");
+    const lang = (match?.[1] || "").toLowerCase();
+    const dotColor = LANG_DOTS[lang] || (isDark ? "#64748B" : "#94A3B8");
 
     const handleCopy = () => {
-      if (navigator && navigator.clipboard) {
+      if (navigator?.clipboard) {
         navigator.clipboard.writeText(codeString);
         setCopied(true);
         setTimeout(() => setCopied(false), 1200);
@@ -76,43 +78,55 @@ export const getMarkdownComponents = (theme) => {
     };
 
     return !inline && match ? (
-      <div className={`my-4 overflow-hidden rounded-lg font-lexend select-text ${theme === 'dark' ? 'border border-gray-700 bg-gray-800' : 'border border-gray-200 bg-gray-50'} ${selectableStyle}`}>
-        <div className={`flex items-center justify-between font-lexend ${theme === 'dark' ? 'bg-gray-700 px-4 py-2 border-b border-gray-600' : 'bg-gray-100 px-4 py-2 border-b border-gray-200'}`}>
-          <span className={`text-xs font-medium font-lexend ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>{match[1]}</span>
-          <div className="flex items-center space-x-1">
-            <button
-              onClick={handleCopy}
-              className={`ml-3 px-2 py-1 text-xs rounded font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${theme === 'dark' ? 'bg-gray-800 text-blue-300 hover:bg-gray-600 focus-visible:ring-blue-400' : 'bg-gray-200 text-blue-700 hover:bg-gray-300 focus-visible:ring-blue-600'}`}
-              aria-label="Copy code"
-              type="button"
-            >
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
+      <div
+        className={`group/code my-5 overflow-hidden rounded-lg ${MONO} select-text ${
+          isDark ? "border border-slate-700/80 bg-[#0D1117]" : "border border-slate-200 bg-[#FBFCFD]"
+        } ${selectableStyle}`}
+      >
+        <div
+          className={`flex items-center justify-between px-3.5 py-2 ${
+            isDark ? "bg-[#161B22] border-b border-slate-700/80" : "bg-slate-50 border-b border-slate-200"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
+            <span className={`text-[11px] font-medium tracking-wide ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+              {match[1]}
+            </span>
           </div>
+          <button
+            onClick={handleCopy}
+            className={`flex items-center gap-1.5 px-2 py-1 text-[11px] rounded-md font-medium transition-all opacity-70 group-hover/code:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
+              isDark
+                ? "text-slate-300 hover:bg-slate-800 focus-visible:ring-indigo-400"
+                : "text-slate-600 hover:bg-slate-200 focus-visible:ring-indigo-500"
+            }`}
+            aria-label="Copy code"
+            type="button"
+          >
+            {copied ? <CheckIcon /> : <CopyIcon />}
+            {copied ? "Copied" : "Copy"}
+          </button>
         </div>
         <SyntaxHighlighter
           ref={codeRef}
           language={match[1]}
-          style={theme === 'dark' ? vscDarkPlus : vs}
+          style={isDark ? vscDarkPlus : vs}
+          showLineNumbers
+          lineNumberStyle={{ minWidth: "2.25em", paddingRight: "1em", color: gutterColor, opacity: 0.5, userSelect: "none" }}
           customStyle={{
-            background: theme === 'dark' ? '#181C24' : '#f3f6fa',
-            fontSize: '1rem',
-            borderRadius: '0.75rem',
-            padding: '1rem',
-            fontFamily: 'Lexend, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-            color: theme === 'dark' ? '#e5e7eb' : '#1e293b',
-            boxShadow: theme === 'dark' ? '0 2px 12px 0 #0002' : '0 2px 12px 0 #0001',
-            userSelect: 'text',
+            background: "transparent",
+            fontSize: "0.9rem",
+            borderRadius: 0,
+            padding: "1rem 1.1rem",
+            margin: 0,
+            fontFamily: 'Fira Code, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+            userSelect: "text",
           }}
           codeTagProps={{
-            style: {
-              fontFamily: 'Lexend, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-              fontWeight: 600,
-              letterSpacing: '0.015em',
-              userSelect: 'text',
-            }
+            style: { fontFamily: 'Fira Code, Menlo, Monaco, Consolas, "Liberation Mono", monospace', fontWeight: 500 },
           }}
-          className="!bg-transparent font-lexend select-text"
+          className="!bg-transparent select-text"
         >
           {codeString}
         </SyntaxHighlighter>
@@ -120,11 +134,9 @@ export const getMarkdownComponents = (theme) => {
     ) : (
       <code
         ref={codeRef}
-        className={`px-1.5 py-0.5 rounded-md text-[0.95em] font-semibold ${
-          theme === 'dark'
-            ? 'bg-slate-800 text-sky-200 border border-slate-700'
-            : 'bg-slate-200/80 text-slate-800 border border-slate-300'
-        } ${className || ''}`}
+        className={`px-1.5 py-0.5 rounded text-[0.9em] ${MONO} font-medium ${
+          isDark ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/20" : "bg-indigo-50 text-indigo-700 border border-indigo-100"
+        } ${className || ""}`}
         {...props}
       >
         {codeString}
@@ -132,12 +144,43 @@ export const getMarkdownComponents = (theme) => {
     );
   };
 
+  // Shared "docblock" renderer used by h2 — renders the section title as an
+  // inline code comment (// title) with a fading rule, instead of a badge/pill.
+  const SectionComment = ({ headingText, accent, id, children }) => (
+    <h2
+      id={id}
+      className={`group relative mt-11 mb-4 first:mt-0 flex items-center scroll-mt-24 ${selectableStyle}`}
+    >
+      <span className={`${MONO} text-[0.8rem] sm:text-[0.85rem] tracking-tight flex items-center gap-2 shrink-0`}>
+        <span style={{ color: accent.color }} className="opacity-70 select-none">{"//"}</span>
+        <span style={{ color: accent.color }} className="select-none">{accent.icon}</span>
+        <span className={`font-semibold uppercase tracking-[0.12em] ${isDark ? "text-slate-100" : "text-slate-800"}`}>
+          {headingText}
+        </span>
+      </span>
+      <span
+        aria-hidden
+        className="ml-3 h-px flex-1"
+        style={{ background: `linear-gradient(to right, ${accent.color}55, transparent)` }}
+      />
+      {id && (
+        <a href={`#${id}`} className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Anchor link" style={{ color: accent.color }}>
+          <AnchorIcon />
+        </a>
+      )}
+    </h2>
+  );
+
   return {
     h1: ({ node, children, ...props }) => {
       const headingText = getTextContent(children);
-      const id = headingText ? headingText.replace(/\s+/g, '-').toLowerCase() : undefined;
+      const id = headingText ? headingText.replace(/\s+/g, "-").toLowerCase() : undefined;
       return (
-        <h1 id={id} className={`group text-3xl md:text-4xl font-black tracking-tight font-lexend ${theme === 'dark' ? 'text-white' : 'text-slate-900'} mb-6 mt-8 flex items-center scroll-mt-24 ${selectableStyle}`} {...props}>
+        <h1
+          id={id}
+          className={`group text-2xl md:text-3xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-900"} mb-5 mt-2 flex items-center scroll-mt-24 ${selectableStyle}`}
+          {...props}
+        >
           {children}
           {id && <a href={`#${id}`} className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Anchor link"><AnchorIcon /></a>}
         </h1>
@@ -145,98 +188,104 @@ export const getMarkdownComponents = (theme) => {
     },
     h2: ({ node, children, ...props }) => {
       const headingText = getTextContent(children);
-      const id = headingText ? headingText.replace(/\s+/g, '-').toLowerCase() : undefined;
+      const id = headingText ? headingText.replace(/\s+/g, "-").toLowerCase() : undefined;
       const accent = getSectionAccent(headingText, theme);
+      if (accent) return <SectionComment headingText={headingText} accent={accent} id={id}>{children}</SectionComment>;
       return (
-        <h2 id={id} className={`group text-2xl font-bold font-lexend ${theme === 'dark' ? 'text-gray-100' : 'text-slate-800'} mb-4 mt-10 flex items-center gap-3 scroll-mt-24 ${selectableStyle}`} {...props}>
-          {accent ? (
-            <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-bold uppercase tracking-[0.16em] ${accent.badge}`}>
-              <span>{accent.icon}</span>
-              <span>{headingText}</span>
-            </span>
-          ) : children}
+        <h2 id={id} className={`group text-xl font-bold ${isDark ? "text-slate-100" : "text-slate-800"} mb-3 mt-9 flex items-center scroll-mt-24 ${selectableStyle}`} {...props}>
+          {children}
           {id && <a href={`#${id}`} className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Anchor link"><AnchorIcon /></a>}
         </h2>
       );
     },
     h3: ({ node, children, ...props }) => {
       const headingText = getTextContent(children);
-      const id = headingText ? headingText.replace(/\s+/g, '-').toLowerCase() : undefined;
+      const id = headingText ? headingText.replace(/\s+/g, "-").toLowerCase() : undefined;
       return (
-        <h3 id={id} className={`group text-xl font-bold font-lexend ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'} mb-3 mt-6 flex items-center scroll-mt-24 ${selectableStyle}`} {...props}>
+        <h3 id={id} className={`group text-base font-semibold ${isDark ? "text-slate-200" : "text-slate-800"} mb-2 mt-5 flex items-center scroll-mt-24 ${selectableStyle}`} {...props}>
           {children}
           {id && <a href={`#${id}`} className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Anchor link"><AnchorIcon /></a>}
         </h3>
       );
     },
     p: ({ node, ...props }) => (
-      <p className={`text-[1.02rem] font-lexend ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'} mb-4 leading-8 ${selectableStyle}`} {...props} />
+      <p className={`text-[0.95rem] ${inkColor} mb-4 leading-[1.75] ${selectableStyle}`} {...props} />
     ),
     ul: ({ node, ...props }) => (
-      <ul className={`list-disc pl-6 mb-5 space-y-2 marker:text-blue-400 dark:marker:text-blue-300 font-lexend ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'} ${selectableStyle}`} {...props} />
+      <ul className={`pl-5 mb-5 space-y-2 ${inkColor} ${selectableStyle}`} style={{ listStyle: "none" }} {...props} />
     ),
     ol: ({ node, ...props }) => (
-      <ol className={`list-decimal pl-6 mb-5 space-y-2 marker:text-blue-400 dark:marker:text-blue-300 font-lexend ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'} ${selectableStyle}`} {...props} />
+      <ol className={`pl-5 mb-5 space-y-2 counter-reset-[item] ${inkColor} ${selectableStyle}`} style={{ listStyle: "none" }} {...props} />
     ),
-    li: ({ node, ...props }) => (
-      <li className={`text-base font-lexend ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'} mb-1 ${selectableStyle}`} {...props} />
+    li: ({ node, ordered, ...props }) => (
+      <li
+        className={`relative pl-5 text-[0.95rem] leading-[1.7] ${inkColor} mb-1 before:absolute before:left-0 before:top-[0.65em] before:w-1.5 before:h-1.5 before:rounded-sm before:content-[''] ${
+          isDark ? "before:bg-indigo-400/70" : "before:bg-indigo-400"
+        } ${selectableStyle}`}
+        {...props}
+      />
     ),
     a: ({ node, href, ...props }) => (
       <a
-        className={`${theme === 'dark' ? 'text-blue-400 hover:text-blue-300 focus-visible:ring-blue-400' : 'text-blue-600 hover:text-blue-800 focus-visible:ring-blue-600'} underline focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 rounded transition-all font-lexend ${selectableStyle}`}
+        className={`${isDark ? "text-indigo-300 hover:text-indigo-200 focus-visible:ring-indigo-400" : "text-indigo-600 hover:text-indigo-800 focus-visible:ring-indigo-500"} underline decoration-dotted underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 rounded transition-colors ${selectableStyle}`}
         href={href}
-        target={href && href.startsWith('http') ? '_blank' : undefined}
-        rel={href && href.startsWith('http') ? 'noopener noreferrer' : undefined}
-        aria-label={href && href.startsWith('http') ? 'External link' : undefined}
+        target={href && href.startsWith("http") ? "_blank" : undefined}
+        rel={href && href.startsWith("http") ? "noopener noreferrer" : undefined}
+        aria-label={href && href.startsWith("http") ? "External link" : undefined}
         {...props}
       >
         {props.children}
-        {href && href.startsWith('http') && <ExternalLinkIcon />}
+        {href && href.startsWith("http") && <ExternalLinkIcon />}
       </a>
     ),
     blockquote: ({ node, ...props }) => (
-      <blockquote className={`relative pl-8 pr-4 py-4 my-5 border-l-4 rounded-2xl font-lexend ${theme === 'dark' ? 'border-blue-500 bg-slate-950/70 text-slate-300' : 'border-blue-400 bg-blue-50/90 text-slate-700'} italic ${selectableStyle}`} {...props}>
-        <span className="absolute left-3 top-3 text-blue-400 dark:text-blue-300">❝</span>
+      <blockquote
+        className={`relative pl-5 pr-4 py-3 my-5 border-l-2 ${MONO} text-[0.9rem] ${
+          isDark ? "border-amber-400/60 bg-amber-400/[0.06] text-slate-300" : "border-amber-500/60 bg-amber-50 text-slate-700"
+        } ${selectableStyle}`}
+        {...props}
+      >
         {props.children}
       </blockquote>
     ),
     hr: ({ node, ...props }) => (
-      <hr className={`my-8 border-0 h-px ${theme === 'dark' ? 'bg-gradient-to-r from-transparent via-slate-600 to-transparent' : 'bg-gradient-to-r from-transparent via-slate-300 to-transparent'}`} {...props} />
+      <hr className={`my-8 border-0 h-px ${isDark ? "bg-slate-700/60" : "bg-slate-200"}`} {...props} />
     ),
     strong: ({ node, ...props }) => (
-      <strong className={`${theme === 'dark' ? 'text-white' : 'text-slate-900'} font-extrabold`} {...props} />
+      <strong className={`${isDark ? "text-white" : "text-slate-900"} font-semibold`} {...props} />
     ),
     Code,
-    code: Code, // <-- Add this line to support lowercase 'code' for markdown renderers
+    code: Code,
     table: ({ node, ...props }) => (
-      <div className="overflow-x-auto mb-4 font-lexend">
-        <table className={`min-w-full divide-y font-lexend ${theme === 'dark' ? 'divide-gray-700 border border-gray-700 rounded-lg' : 'divide-gray-200 border border-gray-200 rounded-lg'} ${selectableStyle}`} {...props} />
+      <div className={`overflow-x-auto mb-5 rounded-lg border ${isDark ? "border-slate-700/80" : "border-slate-200"}`}>
+        <table className={`min-w-full divide-y ${isDark ? "divide-slate-700/80" : "divide-slate-200"} ${selectableStyle}`} {...props} />
       </div>
     ),
     thead: ({ node, ...props }) => (
-      <thead className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} font-lexend ${selectableStyle}`} {...props} />
+      <thead className={`${isDark ? "bg-slate-800/60" : "bg-slate-50"} ${selectableStyle}`} {...props} />
     ),
     tbody: ({ node, ...props }) => (
-      <tbody className={`${theme === 'dark' ? 'bg-gray-900 divide-y divide-gray-700' : 'bg-white divide-y divide-gray-200'} font-lexend ${selectableStyle}`} {...props} />
+      <tbody className={`${isDark ? "bg-transparent divide-y divide-slate-700/60" : "bg-white divide-y divide-slate-100"} ${selectableStyle}`} {...props} />
     ),
     th: ({ node, ...props }) => (
-      <th className={`px-4 py-3 text-left text-xs font-medium font-lexend ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider ${selectableStyle}`} {...props} />
+      <th className={`px-4 py-2.5 text-left text-[11px] ${MONO} font-semibold ${isDark ? "text-slate-400" : "text-slate-500"} uppercase tracking-wider ${selectableStyle}`} {...props} />
     ),
     td: ({ node, ...props }) => (
-      <td className={`px-4 py-3 text-sm font-lexend ${theme === 'dark' ? 'text-gray-300 border border-gray-700' : 'text-gray-700 border border-gray-200'} ${selectableStyle}`} {...props} />
+      <td className={`px-4 py-2.5 text-[0.9rem] ${MONO} ${isDark ? "text-slate-300" : "text-slate-700"} ${selectableStyle}`} {...props} />
     ),
     img: ({ node, src, ...props }) => {
-      // If src is not provided, use an empty alt text for decorative images
-      const altText = props.alt || '';
+      const altText = props.alt || "";
       return (
-        <Image
-          src={src || ''}
-          alt={altText}
-          width={500}
-          height={300}
-          className={`max-w-full h-auto rounded-lg mx-auto my-4 font-lexend ${theme === 'dark' ? 'opacity-90' : ''}`}
-          {...props}
-        />
+        <span className="block my-5">
+          <Image
+            src={src || ""}
+            alt={altText}
+            width={640}
+            height={360}
+            className={`max-w-full h-auto rounded-lg mx-auto border ${isDark ? "border-slate-700/80" : "border-slate-200"}`}
+            {...props}
+          />
+        </span>
       );
     },
   };
