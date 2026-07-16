@@ -66,6 +66,7 @@ class FirebaseService:
         )
 
         if not os.path.exists(service_account_path):
+            
             raise FileNotFoundError(
                 "Firebase service account key not found. "
                 "Set FIREBASE_SERVICE_ACCOUNT_PATH, GOOGLE_APPLICATION_CREDENTIALS, "

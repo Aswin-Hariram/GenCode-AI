@@ -5,12 +5,16 @@ import traceback
 import gc
 import psutil
 import time
+import re
 from functools import wraps
 from datetime import datetime
 from services.changeLanguage import LangChange
 from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import re
+import hashlib
+import json
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, flash
 from flask_cors import CORS
@@ -24,6 +28,9 @@ from services.askHelpToAI import ask_help_to_ai
 from config.config import get_gemini_readiness, get_llm_readiness, get_openrouter_readiness
 from services.language_utils import normalize_language
 from services.github_service import GitHubService
+from services.question_cache import init_cache, QuestionCache, cache_question
+from services.async_question_generator import async_generator
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -40,6 +47,9 @@ load_dotenv()
 # Create Flask app
 app = Flask(__name__)
 
+# Initialize cache
+init_cache(app)
+
 # Configure rate limiting
 limiter = Limiter(
     get_remote_address,
@@ -54,13 +64,11 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # Rate limit error handler
 @app.errorhandler(429)
 def ratelimit_handler(e):
-    # Custom message for /compiler endpoint
     if request.endpoint == 'compile':
         return jsonify({
             'result': 'Error',
             'message': 'more frequent compilation request try again later'
         }), 429
-    # Default message for other endpoints
     return jsonify({
         'result': 'Error',
         'message': f'Rate limit exceeded: {e.description}'
@@ -72,8 +80,8 @@ def memory_usage():
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
     return jsonify({
-        'rss': mem_info.rss,  # Resident Set Size
-        'vms': mem_info.vms,  # Virtual Memory Size
+        'rss': mem_info.rss,
+        'vms': mem_info.vms,
         'percent': process.memory_percent(),
         'available_mb': psutil.virtual_memory().available / (1024 * 1024),
         'used_mb': psutil.virtual_memory().used / (1024 * 1024)
@@ -85,7 +93,6 @@ def log_memory_usage():
     mem_info = process.memory_info()
     logger.info(f"Memory usage: {mem_info.rss / (1024 * 1024):.2f} MB RSS, {mem_info.vms / (1024 * 1024):.2f} MB VMS")
 
-
 # Constants
 TOPICS_FILE = os.getenv('TOPICS_FILE', 'dsa_topics.txt')
 
@@ -93,16 +100,13 @@ def read_topics():
     """Read all topics from the topics file."""
     try:
         if not os.path.exists(TOPICS_FILE):
-           
             return []
         
         with open(TOPICS_FILE, 'r') as file:
             topics = file.readlines()
         
-        # Clean up topics (remove whitespace and empty lines)
         return [topic.strip() for topic in topics if topic.strip()]
     except Exception as e:
-        # Error reading topics file
         return []
 
 def write_topics(topics):
@@ -111,16 +115,12 @@ def write_topics(topics):
         with open(TOPICS_FILE, 'w') as file:
             for topic in topics:
                 file.write(f"{topic}\n")
-        # Successfully wrote topics
         return True
     except Exception as e:
-        # Error writing topics to file
         return False
 
-
-
 @app.route('/submit', methods=['POST'])
-@limiter.limit("50 per minute")  # Add rate limiting
+@limiter.limit("50 per minute")
 def submit():
     """Handle code submission and evaluation."""
     data = request.get_json(silent=True)
@@ -151,7 +151,6 @@ def submit():
             'result': 'Failure',
             'message': f'Error while processing submission: {str(e)}'
         }), 500
-
 
 @limiter.limit("10 per minute")
 @app.route('/compiler', methods=['POST'])
@@ -190,7 +189,6 @@ def compile():
             'message': f'Error while compiling: {str(e)}'
         }), 500
 
-
 @app.route('/changeLanguage', methods=['POST'])
 def changeLanguage():
     """Convert the initial code from one language to another language"""
@@ -213,7 +211,6 @@ def changeLanguage():
             }), 400
 
         result = LangChange(code, fromLang, toLang)
-
         return jsonify(result)
     except Exception as e:
         logger.exception("Error while changing language")
@@ -221,49 +218,88 @@ def changeLanguage():
             'result': 'Failure',
             'message': f'Error while processing submission: {str(e)}'
         }), 500
-    
-    
-        
+
+def generate_dsa_question_with_retry(topic, max_retries=3):
+    """Generate question with retry logic"""
+    for attempt in range(max_retries):
+        try:
+            result = generate_dsa_question(topic)
+            return result
+        except Exception as e:
+            logger.warning(f"Generation attempt {attempt + 1} failed: {str(e)}")
+            if attempt < max_retries - 1:
+                time.sleep(1 * (attempt + 1))  # Exponential backoff
+            else:
+                raise
 
 @app.route('/get_dsa_question', methods=['GET'])
+@limiter.limit("30 per minute")
 def get_dsa_question():
-    """Generate a DSA question based on the provided topic or a random one if not specified."""
+    """
+    Generate a DSA question based on the provided topic or a random one.
+    Now with caching and async support.
+    """
     started_at = time.perf_counter()
     try:
-        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
 
         # Get topic from query parameter
         topic_name = request.args.get('topic', '').strip()
+        force_async = request.args.get('async', 'false').lower() == 'true'
 
-        if topic_name:
-            resolved_topic = FirebaseService.find_topic(topic_name)
-            if not resolved_topic:
-                return jsonify({'error': f"Topic '{topic_name}' was not found."}), 404
-
-            topic = resolved_topic['name']
-            FirebaseService.track_topic_usage(topic)
-        else:
-            # If no topic is provided, get a random one, excluding recent topics
+        # If no topic, get random
+        if not topic_name:
             topic_details = FirebaseService.get_random_topic()
             if not topic_details:
                 return jsonify({'error': 'No topics available.'}), 404
-            topic = topic_details['name']
-        
-        # Generate DSA question using the selected topic
-        logger.info("Generating DSA question for topic: %s", topic)
-        result = generate_dsa_question(topic)
-        
+            topic_name = topic_details['name']
+        else:
+            resolved_topic = FirebaseService.find_topic(topic_name)
+            if not resolved_topic:
+                return jsonify({'error': f"Topic '{topic_name}' was not found."}), 404
+            topic_name = resolved_topic['name']
+            FirebaseService.track_topic_usage(topic_name)
+
+        # Check cache first
+        cached_question = QuestionCache.get_question(topic_name)
+        if cached_question:
+            logger.info(f"Returning cached question for topic '{topic_name}'")
+            elapsed = time.perf_counter() - started_at
+            cached_question['from_cache'] = True
+            cached_question['generation_time'] = elapsed
+            return jsonify(cached_question)
+
+        # If async requested, queue the generation
+        if force_async:
+            request_id = hashlib.md5(f"{topic_name}_{datetime.now().isoformat()}".encode()).hexdigest()
+
+            # Save pending request
+            FirebaseService.save_pending_question(request_id, topic_name, 'pending')
+
+            # Queue the generation
+            async_generator.add_request(topic_name, request_id)
+
+            return jsonify({
+                'status': 'processing',
+                'request_id': request_id,
+                'message': 'Question generation started',
+                'check_url': f'/check_question_status/{request_id}'
+            }), 202
+
+        processed_topic = re.sub(r'^\d+-', '', topic_name)
+        processed_topic = processed_topic.replace('-', ' ')
+
+        # Synchronous generation with retry
+        result = generate_dsa_question_with_retry(processed_topic)
+
         # Ensure topic is a string and clean it up
-        topic_str = str(topic).strip()
+        topic_str = str(topic_name).strip()
         result['topic'] = topic_str
-        
+
         # Get the topic details including difficulty from Firestore
-        from services.firebase_service import FirebaseService
-        FirebaseService.initialize()
         topics = FirebaseService.get_all_topics()
-        
-        # Find the topic details with case-insensitive comparison and handle potential errors
+
+        # Find the topic details
         topic_details = {}
         for t in topics:
             try:
@@ -273,22 +309,114 @@ def get_dsa_question():
                         break
             except (AttributeError, TypeError):
                 continue
-                
+
         result['difficulty'] = topic_details.get('difficulty', 'medium').lower() if isinstance(topic_details, dict) else 'medium'
-        
+
+        # Cache the result
+        QuestionCache.set_question(topic_name, result)
+
         elapsed = time.perf_counter() - started_at
         logger.info("Generated DSA question for topic '%s' in %.2fs", topic_str, elapsed)
+        result['from_cache'] = False
+        result['generation_time'] = elapsed
         return jsonify(result)
+
     except Exception as e:
         elapsed = time.perf_counter() - started_at
         error_details = traceback.format_exc()
         logger.error("Error in get_dsa_question after %.2fs: %s", elapsed, error_details)
-        # Error generating DSA question
         return jsonify({
             'error': f'Failed to generate question: {str(e)}',
-            'details': str(e)  # Include more details for debugging
-        }), 500
+            'details': str(e)
+        }), 500@app.route('/check_question_status/<request_id>', methods=['GET'])
+def check_question_status(request_id):
+    """Check the status of an async question generation request"""
+    try:
+        FirebaseService.initialize()
+        pending_data = FirebaseService.get_pending_question(request_id)
+        
+        if not pending_data:
+            return jsonify({'error': 'Request not found'}), 404
+        
+        status = pending_data.get('status')
+        
+        if status == 'completed':
+            result = pending_data.get('result', {})
+            # Cache the result for future requests
+            topic = pending_data.get('topic')
+            if topic and result:
+                QuestionCache.set_question(topic, result)
+            return jsonify({
+                'status': 'completed',
+                'result': result
+            })
+        elif status == 'failed':
+            return jsonify({
+                'status': 'failed',
+                'error': pending_data.get('error', 'Unknown error')
+            }), 500
+        elif status == 'pending':
+            return jsonify({
+                'status': 'pending',
+                'message': 'Question is being generated'
+            })
+        else:
+            return jsonify({
+                'status': status,
+                'message': 'Unknown status'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error checking status: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
+@app.route('/pre_generate_questions', methods=['POST'])
+def pre_generate_questions():
+    """Pre-generate questions for popular topics"""
+    try:
+        FirebaseService.initialize()
+        topics = FirebaseService.get_all_topics()
+        
+        # Get top N topics (you might want to track popularity)
+        popular_topics = topics[:5]  # Pre-generate for first 5 topics
+        
+        generated_count = 0
+        for topic in popular_topics:
+            topic_name = topic['name']
+            # Check if not cached
+            if not QuestionCache.get_question(topic_name):
+                # Start async generation
+                request_id = hashlib.md5(f"pregen_{topic_name}_{datetime.now().isoformat()}".encode()).hexdigest()
+                FirebaseService.save_pending_question(request_id, topic_name, 'pending')
+                async_generator.add_request(topic_name, request_id)
+                generated_count += 1
+        
+        return jsonify({
+            'message': f'Started pre-generation for {generated_count} topics',
+            'generated_count': generated_count
+        })
+        
+    except Exception as e:
+        logger.error(f"Error pre-generating questions: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/invalidate_cache', methods=['POST'])
+def invalidate_cache():
+    """Invalidate cache for a specific topic or all topics"""
+    try:
+        data = request.get_json()
+        topic = data.get('topic') if data else None
+        
+        if topic:
+            QuestionCache.invalidate_topic(topic)
+            return jsonify({'message': f'Cache invalidated for topic: {topic}'})
+        else:
+            QuestionCache.clear_all()
+            return jsonify({'message': 'All cache cleared'})
+            
+    except Exception as e:
+        logger.error(f"Error invalidating cache: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/generate_random_faang_question', methods=['POST'])
 @limiter.limit("10 per hour")
@@ -317,27 +445,10 @@ def generate_random_faang_question_route():
             'details': str(e),
         }), 500
 
-@app.route('/manage_topics')
-def manage_topics():
-    """Display the topics management page."""
-    try:
-        from services.firebase_service import FirebaseService
-        # Ensure Firebase is initialized
-        FirebaseService.initialize()
-        topics = FirebaseService.get_all_topics()
-        return render_template('manage_topics.html', topics=topics)
-    except Exception as e:
-        logger.error(f"Error in manage_topics: {str(e)}\n{traceback.format_exc()}")
-        return render_template('manage_topics.html', 
-                            topics=[], 
-                            message=f"Error loading topics: {str(e)}", 
-                            success=False), 500
-
 @app.route('/add_topic', methods=['POST'])
 def add_topic():
     """Add a new topic to Firestore."""
     try:
-        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
         
         new_topic = request.form.get('new_topic', '').strip()
@@ -379,7 +490,6 @@ def add_topic():
 def add_topics_bulk():
     """Add multiple topics to Firestore (JSON API endpoint)."""
     try:
-        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
         
         data = request.get_json()
@@ -434,7 +544,6 @@ def add_topics_bulk():
 def edit_topic():
     """Edit an existing topic in Firestore."""
     try:
-        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
         
         old_topic_name = request.form.get('old_topic_name', '').strip()
@@ -472,7 +581,6 @@ def edit_topic():
 def update_topic():
     """Update an existing topic in Firestore (JSON API endpoint)."""
     try:
-        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
         
         data = request.get_json()
@@ -520,7 +628,6 @@ def update_topic():
 def remove_topic():
     """Remove a topic from Firestore."""
     try:
-        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
         
         topic_to_remove = request.form.get('topic', '').strip()
@@ -597,7 +704,6 @@ def find_topic_gaps_route():
 def delete_topic():
     """Delete a topic from Firebase (JSON API endpoint)."""
     try:
-        from services.firebase_service import FirebaseService
         FirebaseService.initialize()
         
         data = request.get_json()
@@ -630,12 +736,10 @@ def delete_topic():
 # Error handlers
 @app.errorhandler(404)
 def page_not_found(e):
-    # 404 error
     return render_template('error.html', error="Page not found"), 404
 
 @app.errorhandler(500)
 def server_error(e):
-    # 500 error
     return render_template('error.html', error="Internal server error"), 500
 
 # Health check endpoint
@@ -680,31 +784,38 @@ def recent_topics():
         print(f"Error in recent_topics: {str(e)}")
         return render_template('recent_topics.html', recent_topics=[])
 
-
-@app.route('/')
-@limiter.limit("300 per minute") 
+@app.route("/")
+@limiter.limit("300 per minute")
 def index():
-    """Render the main index page with recent topics"""
+    """Render the main index page with recent topics."""
     try:
-        # Get recent topics from the topic manager
-        recent = get_recent_topics()
-        return render_template('index.html', recent_topics=recent)
+        FirebaseService.initialize()
+        topics = FirebaseService.get_all_topics()
+        return render_template(
+            "manage_topics.html",
+            topics=topics
+        )
     except Exception as e:
-        # Log the error and render the page without recent topics
-        print(f"Error in index route: {e}")
-        return render_template('index.html', recent_topics=[])
+        logger.error(f"Error in manage_topics: {str(e)}\n{traceback.format_exc()}")
+        return (
+            render_template(
+                "manage_topics.html",
+                topics=[],
+                message=f"Error loading topics: {str(e)}",
+                success=False,
+            ),
+            500,
+        )
 
 @app.route('/api/recent-topics', methods=['GET'])
-@limiter.limit("30 per minute")  # Add rate limiting
+@limiter.limit("30 per minute")
 def api_recent_topics():
     """API endpoint to get recent topics in JSON format"""
-    # Log memory usage before processing
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
     logger.info(f"Memory before recent topics: {mem_info.rss / (1024 * 1024):.2f} MB")
     
     try:
-        # Limit the number of topics to reduce memory usage
         max_topics = 15
         recent = get_recent_topics(limit=max_topics)
         
@@ -715,7 +826,6 @@ def api_recent_topics():
                 'data': []
             })
         
-        # Format the response with memory efficiency
         topics = []
         for i, topic in enumerate(recent[:max_topics], 1):
             try:
@@ -731,7 +841,6 @@ def api_recent_topics():
                 logger.error(f"Error formatting topic {i}: {str(e)}")
                 continue
         
-        # Force garbage collection
         if len(topics) > 0:
             gc.collect()
             
@@ -749,10 +858,8 @@ def api_recent_topics():
             'details': str(e)
         }), 500
     finally:
-        # Log memory usage after processing
         mem_info = process.memory_info()
         logger.info(f"Memory after recent topics: {mem_info.rss / (1024 * 1024):.2f} MB")
-
 
 def log_error(message, print_to_console=True):
     """Helper function to log errors to a file and optionally to console"""
@@ -763,13 +870,11 @@ def log_error(message, print_to_console=True):
         
         log_entry = f"[{datetime.now().isoformat()}] {message}\n"
         
-        # Write to file
         with open(log_file, 'a') as f:
             f.write(log_entry)
             traceback.print_exc(file=f)
             f.write("\n" + "="*80 + "\n\n")
             
-        # Print to console if requested
         if print_to_console:
             print(log_entry, flush=True)
             traceback.print_exc()
@@ -823,9 +928,7 @@ def api_ask_help_to_ai():
                 'error': 'Message, problem description, and problem topic are required.'
             }), 400
 
-        # Call the AI service to get help
         response = ask_help_to_ai(message, language, problem_description, problem_topic, initial_code, user_code_progress)
-
         return jsonify(response) 
 
     except Exception as e:
@@ -834,7 +937,6 @@ def api_ask_help_to_ai():
             'success': False,
             'error': f'Failed to process request: {str(e)}'
         }), 500
-
 
 @app.route('/api/all-topics', methods=['GET'])
 def api_all_topics():
@@ -851,7 +953,6 @@ def api_all_topics():
             "data": [ { id, name, category, difficulty } ]
         }
     """
-    # Sanitise pagination params
     limit = request.args.get('limit', default=10, type=int)
     offset = request.args.get('offset', default=0, type=int)
     limit = min(max(limit, 1), 100)
@@ -884,13 +985,25 @@ def api_all_topics():
 
     return jsonify({"success": True, "data": formatted})
 
+@app.route('/api/cache-stats', methods=['GET'])
+def cache_stats():
+    """Get cache statistics (debugging endpoint)"""
+    try:
+        stats = {
+            'cached_questions': len(QuestionCache.get_cached_questions()),
+            'queue_size': async_generator._queue.qsize() if async_generator._queue else 0,
+        }
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == "__main__":
     # Enable debug mode and detailed error messages
     app.debug = True
     app.config['DEBUG'] = True
     
     # Configure garbage collection
-    gc.set_threshold(700, 10, 10)  # Tune these values based on your app's needs
+    gc.set_threshold(700, 10, 10)
     
     # Log memory usage periodically
     def log_memory():
@@ -915,6 +1028,6 @@ if __name__ == "__main__":
         logger.debug('Headers: %s', request.headers)
         logger.debug('Body: %s', request.get_data())
     
-    port = int(os.environ.get("PORT", 8000))  # Default to 8000 for local dev
+    port = int(os.environ.get("PORT", 8000))
     logger.info(f"Starting server on port {port} with debug={app.debug}")
     app.run(host="0.0.0.0", port=port, debug=True, use_reloader=True)

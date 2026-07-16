@@ -450,6 +450,7 @@ const CombinedSidebar = () => {
           space_complexity: data.space_complexity || 'O(1)',
           initial_code: data.initial_code || '',
           realtopic: data.realtopic || topicName,
+          topic: data.topic || topicName,
         }
       });
       window.dispatchEvent(updateEvent);
